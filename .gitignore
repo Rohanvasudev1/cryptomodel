@@ -1,0 +1,29 @@
+# Data: never commit chain data or derived tables
+data/
+*.parquet
+*.csv.gz
+*.arrow
+*.duckdb
+
+# Model outputs
+checkpoints/
+runs/
+wandb/
+*.pt
+*.safetensors
+*.ckpt
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# Secrets and local config
+.env
+*.key
+credentials*.json
+.claude/settings.local.json
+
+# macOS
+.DS_Store
