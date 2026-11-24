@@ -14,7 +14,7 @@ _HEX_DIGITS = frozenset("0123456789abcdef")
 
 
 class DecodeError(ValueError):
-    """A log matched a known topic0 but its topics or data do not fit the event layout."""
+    """A log has a known topic0 but its topics or data do not fit the layout."""
 
 
 def normalize_hex(value: str | None, what: str) -> str:
@@ -22,8 +22,7 @@ def normalize_hex(value: str | None, what: str) -> str:
     if value is None:
         raise DecodeError(f"{what} is missing")
     text = value.lower()
-    if text.startswith("0x"):
-        text = text[2:]
+    text = text.removeprefix("0x")
     if not _HEX_DIGITS.issuperset(text):
         raise DecodeError(f"{what} is not hex: {value[:80]!r}")
     return text
@@ -37,7 +36,9 @@ def topic_words(topics: Sequence[str | None], expected: int, event: str) -> list
     for i, topic in enumerate(topics):
         text = normalize_hex(topic, f"{event} topic{i}")
         if len(text) != WORD_HEX_CHARS:
-            raise DecodeError(f"{event}: topic{i} has {len(text)} hex chars, expected {WORD_HEX_CHARS}")
+            raise DecodeError(
+                f"{event}: topic{i} has {len(text)} hex chars, expected 64"
+            )
         words.append(int(text, 16))
     return words
 
@@ -47,9 +48,13 @@ def data_words(data: str | None, expected: int, event: str) -> list[int]:
     text = normalize_hex(data if data is not None else "0x", f"{event} data")
     if len(text) != expected * WORD_HEX_CHARS:
         raise DecodeError(
-            f"{event}: data has {len(text)} hex chars, expected {expected} words ({expected * WORD_HEX_CHARS} chars)"
+            f"{event}: data has {len(text)} hex chars, expected {expected} words "
+            f"({expected * WORD_HEX_CHARS} chars)"
         )
-    return [int(text[i : i + WORD_HEX_CHARS], 16) for i in range(0, len(text), WORD_HEX_CHARS)]
+    return [
+        int(text[i : i + WORD_HEX_CHARS], 16)
+        for i in range(0, len(text), WORD_HEX_CHARS)
+    ]
 
 
 def as_uint(word: int, bits: int, field: str) -> int:

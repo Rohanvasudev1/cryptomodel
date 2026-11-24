@@ -13,7 +13,14 @@ ADDR = "0x" + "11" * 20
 
 
 def test_most_negative_int256_round_trips() -> None:
-    data = "0x" + _word(-(2**255)) + _word(2**255 - 1) + _word(2**160 - 1) + _word(2**128 - 1) + _word(-1)
+    data = (
+        "0x"
+        + _word(-(2**255))
+        + _word(2**255 - 1)
+        + _word(2**160 - 1)
+        + _word(2**128 - 1)
+        + _word(-1)
+    )
     topics = [constants.V3_SWAP, _topic_addr(ADDR), _topic_addr(ADDR)]
     swap = decode_log(ADDR, topics, data)
     assert isinstance(swap, ev.V3Swap)
@@ -33,11 +40,15 @@ def test_amounts_above_2_pow_128_are_exact() -> None:
     assert isinstance(swap, ev.V2Swap)
     assert swap.amount1_in == big0
     assert swap.amount0_out == big1
-    assert str(swap.amount0_out) == "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+    assert str(swap.amount0_out) == (
+        "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+    )
 
 
 def test_unknown_topic0_is_ignored() -> None:
-    assert decode_log(ADDR, ["0x" + "ab" * 32, _topic_addr(ADDR)], "0x" + _word(1)) is None
+    assert (
+        decode_log(ADDR, ["0x" + "ab" * 32, _topic_addr(ADDR)], "0x" + _word(1)) is None
+    )
 
 
 def test_log_without_topics_is_ignored() -> None:
@@ -46,7 +57,12 @@ def test_log_without_topics_is_ignored() -> None:
 
 def test_erc721_transfer_is_not_an_erc20_transfer() -> None:
     # ERC-721 shares Transfer's topic0 but indexes tokenId as a 4th topic.
-    topics = [constants.ERC20_TRANSFER, _topic_addr(ADDR), _topic_addr(ADDR), "0x" + _word(7)]
+    topics = [
+        constants.ERC20_TRANSFER,
+        _topic_addr(ADDR),
+        _topic_addr(ADDR),
+        "0x" + _word(7),
+    ]
     assert decode_log(ADDR, topics, "0x") is None
 
 

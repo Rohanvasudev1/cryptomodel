@@ -54,7 +54,14 @@ import polars as pl
 import pyarrow as pa  # type: ignore[import-untyped]
 
 from cryptomodel.decode import events as ev
-from cryptomodel.decode.events import DECODERS, EVENT_CLASSES, DecodedEvent, DecodeError, canonical_topic0, decode_log
+from cryptomodel.decode.events import (
+    DECODERS,
+    EVENT_CLASSES,
+    DecodedEvent,
+    DecodeError,
+    canonical_topic0,
+    decode_log,
+)
 from cryptomodel.decode.registry import KNOWN_FACTORIES, UNKNOWN_FORK, factory_label
 
 __all__ = [
@@ -68,12 +75,22 @@ __all__ = [
     "merge_pool_registries",
 ]
 
-LOG_COLUMNS = ("address", "topics", "data", "transaction_hash", "log_index", "block_number", "block_timestamp")
+LOG_COLUMNS = (
+    "address",
+    "topics",
+    "data",
+    "transaction_hash",
+    "log_index",
+    "block_number",
+    "block_timestamp",
+)
 """Columns `decode_logs` needs (`topic0`..`topic3` may replace `topics`)."""
 
 EVENT_KINDS: tuple[str, ...] = tuple(cls.KIND for cls in EVENT_CLASSES)
 
-_SMALL_INT_FIELDS = frozenset({"fee", "tick", "tick_lower", "tick_upper", "tick_spacing"})
+_SMALL_INT_FIELDS = frozenset(
+    {"fee", "tick", "tick_lower", "tick_upper", "tick_spacing"}
+)
 """int24/uint24 fields, safe as Int64. Every other int field is a decimal string."""
 
 POOL_REGISTRY_SCHEMA = pl.Schema(
@@ -106,7 +123,12 @@ class DecodedLogs:
 
 
 def _meta_schema(ts_dtype: pl.DataType) -> dict[str, pl.DataType]:
-    return {"block_number": pl.Int64(), "block_timestamp": ts_dtype, "tx_hash": pl.String(), "log_index": pl.Int64()}
+    return {
+        "block_number": pl.Int64(),
+        "block_timestamp": ts_dtype,
+        "tx_hash": pl.String(),
+        "log_index": pl.Int64(),
+    }
 
 
 def _event_schema(cls: type[DecodedEvent], ts_dtype: pl.DataType) -> pl.Schema:
@@ -135,7 +157,12 @@ def _dex_action_schema(ts_dtype: pl.DataType) -> pl.Schema:
         "liquidity_delta",
     ):
         schema[name] = pl.String()
-    schema.update(tick_lower=pl.Int64(), tick_upper=pl.Int64(), fee=pl.Int64(), pool_resolved=pl.Boolean())
+    schema.update(
+        tick_lower=pl.Int64(),
+        tick_upper=pl.Int64(),
+        fee=pl.Int64(),
+        pool_resolved=pl.Boolean(),
+    )
     return pl.Schema(schema)
 
 
@@ -149,7 +176,11 @@ def _event_values(event: DecodedEvent) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for f in fields(event):
         value = getattr(event, f.name)
-        out[f.name] = str(value) if isinstance(value, int) and f.name not in _SMALL_INT_FIELDS else value
+        out[f.name] = (
+            str(value)
+            if isinstance(value, int) and f.name not in _SMALL_INT_FIELDS
+            else value
+        )
     return out
 
 
@@ -162,150 +193,150 @@ def _dex_action(event: DecodedEvent) -> dict[str, Any] | None:
     match event:
         case ev.V2PairCreated():
             dex, version = factory_label(event.factory, "v2")
-            return dict(
-                action="create",
-                pool=event.pair,
-                emitter=event.factory,
-                factory=event.factory,
-                dex=dex,
-                version=version,
-                token0=event.token0,
-                token1=event.token1,
-            )
+            return {
+                "action": "create",
+                "pool": event.pair,
+                "emitter": event.factory,
+                "factory": event.factory,
+                "dex": dex,
+                "version": version,
+                "token0": event.token0,
+                "token1": event.token1,
+            }
         case ev.V3PoolCreated():
             dex, version = factory_label(event.factory, "v3")
-            return dict(
-                action="create",
-                pool=event.pool,
-                emitter=event.factory,
-                factory=event.factory,
-                dex=dex,
-                version=version,
-                token0=event.token0,
-                token1=event.token1,
-                fee=event.fee,
-            )
+            return {
+                "action": "create",
+                "pool": event.pool,
+                "emitter": event.factory,
+                "factory": event.factory,
+                "dex": dex,
+                "version": version,
+                "token0": event.token0,
+                "token1": event.token1,
+                "fee": event.fee,
+            }
         case ev.V4Initialize():
             dex, version = factory_label(event.pool_manager, "v4")
-            return dict(
-                action="create",
-                pool=event.pool_id,
-                emitter=event.pool_manager,
-                factory=event.pool_manager,
-                dex=dex,
-                version=version,
-                token0=event.currency0,
-                token1=event.currency1,
-                fee=event.fee,
-            )
+            return {
+                "action": "create",
+                "pool": event.pool_id,
+                "emitter": event.pool_manager,
+                "factory": event.pool_manager,
+                "dex": dex,
+                "version": version,
+                "token0": event.currency0,
+                "token1": event.currency1,
+                "fee": event.fee,
+            }
         case ev.V2Mint():
-            return dict(
-                action="mint",
-                pool=event.pair,
-                emitter=event.pair,
-                version="v2",
-                sender=event.sender,
-                amount0=_to_decimal(event.amount0),
-                amount1=_to_decimal(event.amount1),
-            )
+            return {
+                "action": "mint",
+                "pool": event.pair,
+                "emitter": event.pair,
+                "version": "v2",
+                "sender": event.sender,
+                "amount0": _to_decimal(event.amount0),
+                "amount1": _to_decimal(event.amount1),
+            }
         case ev.V2Burn():
-            return dict(
-                action="burn",
-                pool=event.pair,
-                emitter=event.pair,
-                version="v2",
-                sender=event.sender,
-                recipient=event.to,
-                amount0=_to_decimal(event.amount0),
-                amount1=_to_decimal(event.amount1),
-            )
+            return {
+                "action": "burn",
+                "pool": event.pair,
+                "emitter": event.pair,
+                "version": "v2",
+                "sender": event.sender,
+                "recipient": event.to,
+                "amount0": _to_decimal(event.amount0),
+                "amount1": _to_decimal(event.amount1),
+            }
         case ev.V2Swap():
-            return dict(
-                action="swap",
-                pool=event.pair,
-                emitter=event.pair,
-                version="v2",
-                sender=event.sender,
-                recipient=event.to,
-                amount0=_to_decimal(event.amount0_in - event.amount0_out),
-                amount1=_to_decimal(event.amount1_in - event.amount1_out),
-            )
+            return {
+                "action": "swap",
+                "pool": event.pair,
+                "emitter": event.pair,
+                "version": "v2",
+                "sender": event.sender,
+                "recipient": event.to,
+                "amount0": _to_decimal(event.amount0_in - event.amount0_out),
+                "amount1": _to_decimal(event.amount1_in - event.amount1_out),
+            }
         case ev.V3Mint():
-            return dict(
-                action="mint",
-                pool=event.pool,
-                emitter=event.pool,
-                version="v3",
-                sender=event.sender,
-                owner=event.owner,
-                amount0=_to_decimal(event.amount0),
-                amount1=_to_decimal(event.amount1),
-                liquidity_delta=_to_decimal(event.amount),
-                tick_lower=event.tick_lower,
-                tick_upper=event.tick_upper,
-            )
+            return {
+                "action": "mint",
+                "pool": event.pool,
+                "emitter": event.pool,
+                "version": "v3",
+                "sender": event.sender,
+                "owner": event.owner,
+                "amount0": _to_decimal(event.amount0),
+                "amount1": _to_decimal(event.amount1),
+                "liquidity_delta": _to_decimal(event.amount),
+                "tick_lower": event.tick_lower,
+                "tick_upper": event.tick_upper,
+            }
         case ev.V3Burn():
-            return dict(
-                action="burn",
-                pool=event.pool,
-                emitter=event.pool,
-                version="v3",
-                owner=event.owner,
-                amount0=_to_decimal(event.amount0),
-                amount1=_to_decimal(event.amount1),
-                liquidity_delta=_to_decimal(-event.amount),
-                tick_lower=event.tick_lower,
-                tick_upper=event.tick_upper,
-            )
+            return {
+                "action": "burn",
+                "pool": event.pool,
+                "emitter": event.pool,
+                "version": "v3",
+                "owner": event.owner,
+                "amount0": _to_decimal(event.amount0),
+                "amount1": _to_decimal(event.amount1),
+                "liquidity_delta": _to_decimal(-event.amount),
+                "tick_lower": event.tick_lower,
+                "tick_upper": event.tick_upper,
+            }
         case ev.V3Collect():
-            return dict(
-                action="collect",
-                pool=event.pool,
-                emitter=event.pool,
-                version="v3",
-                owner=event.owner,
-                recipient=event.recipient,
-                amount0=_to_decimal(event.amount0),
-                amount1=_to_decimal(event.amount1),
-                tick_lower=event.tick_lower,
-                tick_upper=event.tick_upper,
-            )
+            return {
+                "action": "collect",
+                "pool": event.pool,
+                "emitter": event.pool,
+                "version": "v3",
+                "owner": event.owner,
+                "recipient": event.recipient,
+                "amount0": _to_decimal(event.amount0),
+                "amount1": _to_decimal(event.amount1),
+                "tick_lower": event.tick_lower,
+                "tick_upper": event.tick_upper,
+            }
         case ev.V3Swap():
-            return dict(
-                action="swap",
-                pool=event.pool,
-                emitter=event.pool,
-                version="v3",
-                sender=event.sender,
-                recipient=event.recipient,
-                amount0=_to_decimal(event.amount0),
-                amount1=_to_decimal(event.amount1),
-            )
+            return {
+                "action": "swap",
+                "pool": event.pool,
+                "emitter": event.pool,
+                "version": "v3",
+                "sender": event.sender,
+                "recipient": event.recipient,
+                "amount0": _to_decimal(event.amount0),
+                "amount1": _to_decimal(event.amount1),
+            }
         case ev.V4ModifyLiquidity():
             delta = event.liquidity_delta
             action = "mint" if delta > 0 else "burn" if delta < 0 else "collect"
-            return dict(
-                action=action,
-                pool=event.pool_id,
-                emitter=event.pool_manager,
-                version="v4",
-                sender=event.sender,
-                liquidity_delta=_to_decimal(delta),
-                tick_lower=event.tick_lower,
-                tick_upper=event.tick_upper,
-            )
+            return {
+                "action": action,
+                "pool": event.pool_id,
+                "emitter": event.pool_manager,
+                "version": "v4",
+                "sender": event.sender,
+                "liquidity_delta": _to_decimal(delta),
+                "tick_lower": event.tick_lower,
+                "tick_upper": event.tick_upper,
+            }
         case ev.V4Swap():
             # V4 reports the swapper's balance change; flip it to the pool's.
-            return dict(
-                action="swap",
-                pool=event.pool_id,
-                emitter=event.pool_manager,
-                version="v4",
-                sender=event.sender,
-                amount0=_to_decimal(-event.amount0),
-                amount1=_to_decimal(-event.amount1),
-                fee=event.fee,
-            )
+            return {
+                "action": "swap",
+                "pool": event.pool_id,
+                "emitter": event.pool_manager,
+                "version": "v4",
+                "sender": event.sender,
+                "amount0": _to_decimal(-event.amount0),
+                "amount1": _to_decimal(-event.amount1),
+                "fee": event.fee,
+            }
         case _:
             return None  # V2 Sync, V3 Initialize, ERC-20 events
 
@@ -313,15 +344,22 @@ def _dex_action(event: DecodedEvent) -> dict[str, Any] | None:
 def _normalize_logs(logs: pa.Table | pl.DataFrame) -> pl.DataFrame:
     df = pl.from_arrow(logs) if isinstance(logs, pa.Table) else logs
     if not isinstance(df, pl.DataFrame):
-        raise TypeError(f"expected a pyarrow Table or polars DataFrame, got {type(logs).__name__}")
+        raise TypeError(
+            f"expected a pyarrow Table or polars DataFrame, got {type(logs).__name__}"
+        )
     if "topics" not in df.columns and "topic0" in df.columns:
-        topic_cols = [c for c in ("topic0", "topic1", "topic2", "topic3") if c in df.columns]
+        topic_cols = [
+            c for c in ("topic0", "topic1", "topic2", "topic3") if c in df.columns
+        ]
         # Drop trailing null topics only; a null before a non-null topic stays a
         # null so the decoder rejects the log instead of shifting topics down.
         n_topics = pl.max_horizontal(
-            pl.when(pl.col(col).is_not_null()).then(i + 1).otherwise(0) for i, col in enumerate(topic_cols)
+            pl.when(pl.col(col).is_not_null()).then(i + 1).otherwise(0)
+            for i, col in enumerate(topic_cols)
         )
-        df = df.with_columns(pl.concat_list(topic_cols).list.head(n_topics).alias("topics"))
+        df = df.with_columns(
+            pl.concat_list(topic_cols).list.head(n_topics).alias("topics")
+        )
     missing = [c for c in LOG_COLUMNS if c not in df.columns]
     if missing:
         raise ValueError(f"logs table is missing columns: {', '.join(missing)}")
@@ -342,7 +380,10 @@ def build_pool_registry(events: Mapping[str, pl.DataFrame]) -> pl.DataFrame:
     """
     null_int = pl.lit(None, dtype=pl.Int64)
     null_str = pl.lit(None, dtype=pl.String)
-    created = [pl.col("block_number").alias("created_block_number"), pl.col("tx_hash").alias("created_tx_hash")]
+    created = [
+        pl.col("block_number").alias("created_block_number"),
+        pl.col("tx_hash").alias("created_tx_hash"),
+    ]
     parts = []
     if (v2 := events.get("v2_pair_created")) is not None:
         parts.append(
@@ -413,14 +454,22 @@ def build_pool_registry(events: Mapping[str, pl.DataFrame]) -> pl.DataFrame:
 
 def merge_pool_registries(*registries: pl.DataFrame | None) -> pl.DataFrame:
     """Concatenate registries; for a pool seen twice the earlier argument wins."""
-    frames = [r.select(POOL_REGISTRY_SCHEMA.names()).cast(POOL_REGISTRY_SCHEMA) for r in registries if r is not None]
+    frames = [
+        r.select(POOL_REGISTRY_SCHEMA.names()).cast(POOL_REGISTRY_SCHEMA)
+        for r in registries
+        if r is not None
+    ]
     if not frames:
         return _empty_registry()
-    return pl.concat(frames).unique(subset=["pool", "event_emitter"], keep="first", maintain_order=True)
+    return pl.concat(frames).unique(
+        subset=["pool", "event_emitter"], keep="first", maintain_order=True
+    )
 
 
-def attach_pool_info(dex_action: pl.DataFrame, pool_registry: pl.DataFrame) -> pl.DataFrame:
-    """Fill token0, token1, factory, dex and fee on dex_action rows from a pool registry.
+def attach_pool_info(
+    dex_action: pl.DataFrame, pool_registry: pl.DataFrame
+) -> pl.DataFrame:
+    """Fill token0, token1, factory, dex and fee on dex_action rows from a registry.
 
     Matches on (`pool`, `emitter`) = (`pool`, `event_emitter`). Values already on a
     row are kept. `pool_resolved` becomes true for matched rows and stays false
@@ -451,11 +500,21 @@ def attach_pool_info(dex_action: pl.DataFrame, pool_registry: pl.DataFrame) -> p
 
 
 def _rows(df: pl.DataFrame) -> Iterable[tuple[Any, ...]]:
-    cols = ["address", "topics", "data", "block_number", "block_timestamp", "transaction_hash", "log_index"]
+    cols = [
+        "address",
+        "topics",
+        "data",
+        "block_number",
+        "block_timestamp",
+        "transaction_hash",
+        "log_index",
+    ]
     return df.select(cols).iter_rows()
 
 
-def decode_logs(logs: pa.Table | pl.DataFrame, pool_registry: pl.DataFrame | None = None) -> DecodedLogs:
+def decode_logs(
+    logs: pa.Table | pl.DataFrame, pool_registry: pl.DataFrame | None = None
+) -> DecodedLogs:
     """Decode every known event in `logs`.
 
     `pool_registry` carries pools created in earlier batches (for example the
@@ -466,13 +525,25 @@ def decode_logs(logs: pa.Table | pl.DataFrame, pool_registry: pl.DataFrame | Non
     ts_dtype = df.schema["block_timestamp"]
     known_topic0 = pl.Series(list(DECODERS), dtype=pl.String)
     topic0 = pl.col("topics").list.first().str.to_lowercase()
-    topic0 = pl.when(topic0.str.starts_with("0x")).then(topic0).otherwise(pl.lit("0x") + topic0)
+    topic0 = (
+        pl.when(topic0.str.starts_with("0x"))
+        .then(topic0)
+        .otherwise(pl.lit("0x") + topic0)
+    )
     candidates = df.filter(topic0.is_in(known_topic0.implode()))
 
     by_kind: dict[str, list[dict[str, Any]]] = {kind: [] for kind in EVENT_KINDS}
     actions: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = []
-    for address, topics, data, block_number, block_timestamp, tx_hash, log_index in _rows(candidates):
+    for (
+        address,
+        topics,
+        data,
+        block_number,
+        block_timestamp,
+        tx_hash,
+        log_index,
+    ) in _rows(candidates):
         meta = {
             "block_number": block_number,
             "block_timestamp": block_timestamp,
@@ -482,18 +553,32 @@ def decode_logs(logs: pa.Table | pl.DataFrame, pool_registry: pl.DataFrame | Non
         try:
             event = decode_log(address, topics, data)
         except DecodeError as exc:
-            errors.append(meta | {"address": address, "topic0": canonical_topic0(topics[0]), "error": str(exc)})
+            errors.append(
+                meta
+                | {
+                    "address": address,
+                    "topic0": canonical_topic0(topics[0]),
+                    "error": str(exc),
+                }
+            )
             continue
         if event is None:
             continue
         by_kind[event.KIND].append(meta | _event_values(event))
         action = _dex_action(event)
         if action is not None:
-            actions.append(meta | action | {"pool_resolved": action["action"] == "create"})
+            actions.append(
+                meta | action | {"pool_resolved": action["action"] == "create"}
+            )
 
-    events = {cls.KIND: pl.DataFrame(by_kind[cls.KIND], schema=_event_schema(cls, ts_dtype)) for cls in EVENT_CLASSES}
+    events = {
+        cls.KIND: pl.DataFrame(by_kind[cls.KIND], schema=_event_schema(cls, ts_dtype))
+        for cls in EVENT_CLASSES
+    }
     registry = merge_pool_registries(pool_registry, build_pool_registry(events))
-    dex_action = attach_pool_info(pl.DataFrame(actions, schema=_dex_action_schema(ts_dtype)), registry)
+    dex_action = attach_pool_info(
+        pl.DataFrame(actions, schema=_dex_action_schema(ts_dtype)), registry
+    )
     return DecodedLogs(
         events=events,
         dex_action=dex_action,

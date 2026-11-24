@@ -5,7 +5,19 @@
 - `constants`: topic0 hashes. `registry`: known factories and their dex labels.
 """
 
-from cryptomodel.decode.batch import DecodedLogs, attach_pool_info, build_pool_registry, decode_logs
+from cryptomodel.decode.batch import (
+    DecodedLogs,
+    attach_pool_info,
+    build_pool_registry,
+    decode_logs,
+)
 from cryptomodel.decode.events import DecodeError, decode_log
 
-__all__ = ["DecodeError", "DecodedLogs", "attach_pool_info", "build_pool_registry", "decode_log", "decode_logs"]
+__all__ = [
+    "DecodeError",
+    "DecodedLogs",
+    "attach_pool_info",
+    "build_pool_registry",
+    "decode_log",
+    "decode_logs",
+]

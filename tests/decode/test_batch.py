@@ -30,7 +30,12 @@ UNKNOWN_FACTORY = "0x" + "12" * 20
 # made-up factory, so the V3 swap fixture resolves to an "unknown_fork" pool.
 SYNTHETIC_FORK_POOL_CREATED = fx.RawLog(
     address=UNKNOWN_FACTORY,
-    topics=[constants.V3_POOL_CREATED, _topic_addr(WETH), _topic_addr(USDT), "0x" + _word(3000)],
+    topics=[
+        constants.V3_POOL_CREATED,
+        _topic_addr(WETH),
+        _topic_addr(USDT),
+        "0x" + _word(3000),
+    ],
     data="0x" + _word(60) + _word(int("4e68ccd3e89f51c3074ca5072bbac773960dfa36", 16)),
     block_number=1,
     tx_hash="0x" + "aa" * 32,
@@ -119,10 +124,16 @@ def test_typed_tables_have_one_table_per_kind(decoded: DecodedLogs) -> None:
     counts = {kind: df.height for kind, df in decoded.events.items()}
     assert counts["v3_swap"] == 2  # Uniswap and PancakeSwap layouts
     assert counts["v3_pool_created"] == 2  # real plus synthetic fork
-    assert all(n == 1 for kind, n in counts.items() if kind not in {"v3_swap", "v3_pool_created"})
+    assert all(
+        n == 1
+        for kind, n in counts.items()
+        if kind not in {"v3_swap", "v3_pool_created"}
+    )
 
 
-def test_typed_table_keeps_amounts_as_exact_decimal_strings(decoded: DecodedLogs) -> None:
+def test_typed_table_keeps_amounts_as_exact_decimal_strings(
+    decoded: DecodedLogs,
+) -> None:
     swap = decoded.events["v4_swap"]
     assert swap.schema["amount1"] == pl.String
     assert swap.schema["tick"] == pl.Int64
@@ -135,12 +146,21 @@ def test_typed_table_keeps_amounts_as_exact_decimal_strings(decoded: DecodedLogs
 
 
 def test_no_float_columns_anywhere(decoded: DecodedLogs) -> None:
-    frames = [*decoded.events.values(), decoded.dex_action, decoded.errors, decoded.pool_registry]
+    frames = [
+        *decoded.events.values(),
+        decoded.dex_action,
+        decoded.errors,
+        decoded.pool_registry,
+    ]
     for frame in frames:
-        assert not any(dtype.is_float() for dtype in frame.schema.values()), frame.schema
+        assert not any(dtype.is_float() for dtype in frame.schema.values()), (
+            frame.schema
+        )
 
 
-def test_malformed_log_goes_to_errors_and_unknown_is_dropped(decoded: DecodedLogs) -> None:
+def test_malformed_log_goes_to_errors_and_unknown_is_dropped(
+    decoded: DecodedLogs,
+) -> None:
     assert decoded.errors.height == 1
     err = decoded.errors.row(0, named=True)
     assert err["tx_hash"] == MALFORMED_SYNC.tx_hash
@@ -152,11 +172,21 @@ def test_malformed_log_goes_to_errors_and_unknown_is_dropped(decoded: DecodedLog
 
 def test_dex_action_row_count(decoded: DecodedLogs) -> None:
     actions = decoded.dex_action.group_by("action").len().sort("action")
-    assert dict(actions.iter_rows()) == {"burn": 2, "collect": 1, "create": 4, "mint": 3, "swap": 4}
+    assert dict(actions.iter_rows()) == {
+        "burn": 2,
+        "collect": 1,
+        "create": 4,
+        "mint": 3,
+        "swap": 4,
+    }
 
 
-def test_v2_swap_is_pool_signed_and_resolved_from_prior_registry(decoded: DecodedLogs) -> None:
-    row = _row(decoded.dex_action, tx_hash=fx.V2_SWAP.tx_hash, log_index=fx.V2_SWAP.log_index)
+def test_v2_swap_is_pool_signed_and_resolved_from_prior_registry(
+    decoded: DecodedLogs,
+) -> None:
+    row = _row(
+        decoded.dex_action, tx_hash=fx.V2_SWAP.tx_hash, log_index=fx.V2_SWAP.log_index
+    )
     assert row["action"] == "swap"
     assert row["version"] == "v2"
     assert row["amount0"] == "-635030774"  # USDC out of the pool
@@ -170,9 +200,14 @@ def test_v2_swap_is_pool_signed_and_resolved_from_prior_registry(decoded: Decode
 
 
 def test_v4_swap_is_flipped_to_pool_perspective(decoded: DecodedLogs) -> None:
-    row = _row(decoded.dex_action, tx_hash=fx.V4_SWAP.tx_hash, log_index=fx.V4_SWAP.log_index)
+    row = _row(
+        decoded.dex_action, tx_hash=fx.V4_SWAP.tx_hash, log_index=fx.V4_SWAP.log_index
+    )
     assert row["version"] == "v4"
-    assert row["pool"] == "0xb80eb6a392d33eb1b014656b31b96edf9aa16c39c0baa5dbf7492435327516ea"
+    assert (
+        row["pool"]
+        == "0xb80eb6a392d33eb1b014656b31b96edf9aa16c39c0baa5dbf7492435327516ea"
+    )
     assert row["amount0"] == "-819785390279743211"  # ETH out to the swapper
     assert row["amount1"] == "259741301662557053331753"  # token into the PoolManager
     assert row["pool_resolved"] is False  # pool initialised before this batch
@@ -206,18 +241,29 @@ def test_unknown_factory_is_labelled_unknown_fork(decoded: DecodedLogs) -> None:
 
 def test_create_rows_carry_tokens_and_known_dex(decoded: DecodedLogs) -> None:
     v2 = _row(decoded.dex_action, tx_hash=fx.V2_PAIR_CREATED.tx_hash)
-    assert (v2["pool"], v2["dex"], v2["version"]) == ("0x3ac69e914905577af1c325e6ef7ad9d76e1567ef", "uniswap", "v2")
+    assert (v2["pool"], v2["dex"], v2["version"]) == (
+        "0x3ac69e914905577af1c325e6ef7ad9d76e1567ef",
+        "uniswap",
+        "v2",
+    )
     assert v2["token1"] == WETH
     assert v2["amount0"] is None
     v4 = _row(decoded.dex_action, tx_hash=fx.V4_INITIALIZE.tx_hash)
     assert (v4["dex"], v4["version"], v4["fee"]) == ("uniswap", "v4", 999961)
-    assert v4["pool"] == "0x08988e4385fdd636e5de72bb70ad196e871eefa8fdd66af937035aedef2e6c2a"
+    assert (
+        v4["pool"]
+        == "0x08988e4385fdd636e5de72bb70ad196e871eefa8fdd66af937035aedef2e6c2a"
+    )
     assert v4["factory"] == "0x000000000004444c5dc75cb358380d2e3de08a90"
 
 
 def test_liquidity_fields(decoded: DecodedLogs) -> None:
     v3_mint = _row(decoded.dex_action, tx_hash=fx.V3_MINT.tx_hash)
-    assert (v3_mint["liquidity_delta"], v3_mint["tick_lower"], v3_mint["tick_upper"]) == (
+    assert (
+        v3_mint["liquidity_delta"],
+        v3_mint["tick_lower"],
+        v3_mint["tick_upper"],
+    ) == (
         "1741916136209",
         199360,
         202860,
@@ -239,7 +285,9 @@ def test_liquidity_fields(decoded: DecodedLogs) -> None:
 def test_pool_registry_merges_prior_and_new_pools(decoded: DecodedLogs) -> None:
     reg = decoded.pool_registry
     assert reg.schema == POOL_REGISTRY_SCHEMA
-    assert reg.height == 5  # prior USDC/WETH + PairCreated + 2 PoolCreated + V4 Initialize
+    assert (
+        reg.height == 5
+    )  # prior USDC/WETH + PairCreated + 2 PoolCreated + V4 Initialize
     assert reg["pool"].n_unique() == 5
 
 
@@ -254,7 +302,8 @@ def test_pyarrow_input_matches_polars_input() -> None:
 def test_topic0_to_topic3_columns_are_accepted() -> None:
     frame = _logs_frame(fx.ALL_FIXTURES)
     split = frame.with_columns(
-        pl.col("topics").list.get(i, null_on_oob=True).alias(f"topic{i}") for i in range(4)
+        pl.col("topics").list.get(i, null_on_oob=True).alias(f"topic{i}")
+        for i in range(4)
     ).drop("topics")
     assert decode_logs(split).dex_action.equals(decode_logs(frame).dex_action)
 
@@ -282,8 +331,15 @@ def test_attach_pool_info_can_be_rerun_with_a_later_registry() -> None:
                 [
                     fx.RawLog(
                         address="0x0bfbcf9fa4f9c56b0f40a671ad40e0805a091865",
-                        topics=[constants.V3_POOL_CREATED, _topic_addr(WETH), _topic_addr(USDT), "0x" + _word(100)],
-                        data="0x" + _word(1) + _word(int("acdb27b266142223e1e676841c1e809255fc6d07", 16)),
+                        topics=[
+                            constants.V3_POOL_CREATED,
+                            _topic_addr(WETH),
+                            _topic_addr(USDT),
+                            "0x" + _word(100),
+                        ],
+                        data="0x"
+                        + _word(1)
+                        + _word(int("acdb27b266142223e1e676841c1e809255fc6d07", 16)),
                         block_number=1,
                         tx_hash="0x" + "ee" * 32,
                         log_index=0,
@@ -293,7 +349,12 @@ def test_attach_pool_info_can_be_rerun_with_a_later_registry() -> None:
         ).events
     )
     row = attach_pool_info(out.dex_action, later).row(0, named=True)
-    assert (row["dex"], row["token0"], row["token1"], row["fee"]) == ("pancakeswap", WETH, USDT, 100)
+    assert (row["dex"], row["token0"], row["token1"], row["fee"]) == (
+        "pancakeswap",
+        WETH,
+        USDT,
+        100,
+    )
     assert row["pool_resolved"] is True
 
 
@@ -317,5 +378,9 @@ def test_null_gap_in_topic_columns_is_an_error_not_a_shift() -> None:
 
 def test_topic0_without_0x_prefix_is_recognised() -> None:
     log = fx.V2_SYNC
-    out = decode_logs(_logs_frame([fx.RawLog(log.address, [log.topics[0][2:]], log.data, 1, log.tx_hash, 0)]))
+    out = decode_logs(
+        _logs_frame(
+            [fx.RawLog(log.address, [log.topics[0][2:]], log.data, 1, log.tx_hash, 0)]
+        )
+    )
     assert out.events["v2_sync"].height == 1

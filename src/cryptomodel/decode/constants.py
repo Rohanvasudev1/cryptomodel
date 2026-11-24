@@ -28,11 +28,15 @@ V3_MINT = "0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde"
 V3_BURN = "0x0c396cd989a39f4459b5fa1aed6a9a8dcdbc45908acfd67e028cd568da98982c"
 V3_SWAP = "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67"
 V3_COLLECT = "0x70935338e69775456a85ddef226c395fb668b63fa0115f5f20610b388e6ca9c0"
-PANCAKESWAP_V3_SWAP = "0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a3577dc83"
+PANCAKESWAP_V3_SWAP = (
+    "0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a3577dc83"
+)
 
 # Uniswap V4 PoolManager
 V4_INITIALIZE = "0xdd466e674ea557f56295e2d0218a125ea4b4f0f6f3307b95f85e6110838d6438"
-V4_MODIFY_LIQUIDITY = "0xf208f4912782fd25c7f114ca3723a2d5dd6f3bcc3ac8db5af63baa85f711d5ec"
+V4_MODIFY_LIQUIDITY = (
+    "0xf208f4912782fd25c7f114ca3723a2d5dd6f3bcc3ac8db5af63baa85f711d5ec"
+)
 V4_SWAP = "0x40e9cecb9f5f1f1c5b9c97dec2917b7ee92e57ba5563708daca94dd84ad7112f"
 
 EVENT_SIGNATURES: dict[str, str] = {
@@ -49,8 +53,12 @@ EVENT_SIGNATURES: dict[str, str] = {
     V3_BURN: "Burn(address,int24,int24,uint128,uint256,uint256)",
     V3_SWAP: "Swap(address,address,int256,int256,uint160,uint128,int24)",
     V3_COLLECT: "Collect(address,address,int24,int24,uint128,uint128)",
-    PANCAKESWAP_V3_SWAP: "Swap(address,address,int256,int256,uint160,uint128,int24,uint128,uint128)",
-    V4_INITIALIZE: "Initialize(bytes32,address,address,uint24,int24,address,uint160,int24)",
+    PANCAKESWAP_V3_SWAP: (
+        "Swap(address,address,int256,int256,uint160,uint128,int24,uint128,uint128)"
+    ),
+    V4_INITIALIZE: (
+        "Initialize(bytes32,address,address,uint24,int24,address,uint160,int24)"
+    ),
     V4_MODIFY_LIQUIDITY: "ModifyLiquidity(bytes32,address,int24,int24,int256,bytes32)",
     V4_SWAP: "Swap(bytes32,address,int128,int128,uint160,uint128,int24,uint24)",
 }

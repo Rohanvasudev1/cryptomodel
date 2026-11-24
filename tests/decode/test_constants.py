@@ -38,7 +38,10 @@ def _keccak_f(a: list[list[int]]) -> list[list[int]]:
         for x in range(5):
             for y in range(5):
                 b[y][(2 * x + 3 * y) % 5] = _rol(a[x][y], _ROT[x][y])
-        a = [[b[x][y] ^ ((~b[(x + 1) % 5][y]) & b[(x + 2) % 5][y]) for y in range(5)] for x in range(5)]
+        a = [
+            [b[x][y] ^ ((~b[(x + 1) % 5][y]) & b[(x + 2) % 5][y]) for y in range(5)]
+            for x in range(5)
+        ]
         a[0][0] ^= rc
     return a
 
@@ -61,7 +64,10 @@ def keccak256(message: bytes) -> bytes:
 
 
 def test_keccak_known_vectors() -> None:
-    assert keccak256(b"").hex() == "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+    assert (
+        keccak256(b"").hex()
+        == "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+    )
     # A message longer than one 136-byte block exercises the absorb loop.
     assert keccak256(b"a" * 200).hex() == keccak256(b"a" * 100 + b"a" * 100).hex()
 

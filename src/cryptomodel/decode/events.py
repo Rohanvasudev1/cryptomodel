@@ -409,7 +409,9 @@ def decode_v3_burn(address: str, topics: Topics, data: str) -> V3Burn:
     )
 
 
-def _decode_v3_swap(address: str, topics: Topics, data: str, *, pancakeswap: bool) -> V3Swap:
+def _decode_v3_swap(
+    address: str, topics: Topics, data: str, *, pancakeswap: bool
+) -> V3Swap:
     name = "V3Swap"
     t = topic_words(topics, 3, name)
     d = data_words(data, 7 if pancakeswap else 5, name)
@@ -422,8 +424,12 @@ def _decode_v3_swap(address: str, topics: Topics, data: str, *, pancakeswap: boo
         sqrt_price_x96=as_uint(d[2], 160, f"{name}.sqrt_price_x96"),
         liquidity=as_uint(d[3], 128, f"{name}.liquidity"),
         tick=as_int(d[4], 24, f"{name}.tick"),
-        protocol_fees_token0=as_uint(d[5], 128, f"{name}.protocol_fees_token0") if pancakeswap else None,
-        protocol_fees_token1=as_uint(d[6], 128, f"{name}.protocol_fees_token1") if pancakeswap else None,
+        protocol_fees_token0=as_uint(d[5], 128, f"{name}.protocol_fees_token0")
+        if pancakeswap
+        else None,
+        protocol_fees_token1=as_uint(d[6], 128, f"{name}.protocol_fees_token1")
+        if pancakeswap
+        else None,
     )
 
 
@@ -467,7 +473,9 @@ def decode_v4_initialize(address: str, topics: Topics, data: str) -> V4Initializ
     )
 
 
-def decode_v4_modify_liquidity(address: str, topics: Topics, data: str) -> V4ModifyLiquidity:
+def decode_v4_modify_liquidity(
+    address: str, topics: Topics, data: str
+) -> V4ModifyLiquidity:
     name = "V4ModifyLiquidity"
     t = topic_words(topics, 3, name)
     d = data_words(data, 4, name)
