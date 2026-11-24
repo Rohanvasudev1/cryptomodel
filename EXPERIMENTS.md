@@ -2,6 +2,8 @@
 
 Add one entry per run, newest first. Record failed runs too. The ablation tables in the paper come from this file.
 
+**Rule.** Every session that runs anything (a trial, labeling, training or evaluation) adds an entry here in the same PR, and the manager rejects a PR that runs something without one. Fill in the hypothesis and pass threshold before looking at the results, copying them from the phase gate in `PLAN.md` where one applies; a threshold changes only through a dated decision-log entry in `PLAN.md`. Each result names its baseline, its split and its seeds (at least 5 for a model comparison), with the label base rate next to every precision figure. Negative and inconclusive results are logged the same way. See "How we run experiments" in `PLAN.md`.
+
 ## Template
 
 ```text
@@ -9,13 +11,18 @@ Run ID:
 Date:
 Phase:
 Question this run answers:
+Hypothesis (pre-registered, written before the results):
+Pass threshold (from the PLAN.md gate, or set here before the run):
 
 Data snapshot date:
 Pretraining cutoff date:
 Train, validation and test periods:
+Split (time split by default; say if not):
+Label and label version:
+Base rate (per label and horizon):
 Code commit:
 Config file:
-Seed:
+Seeds:
 Machine:
 
 Model size:
@@ -23,10 +30,12 @@ Objectives:
 Wall-clock time:
 
 Results:
-  Metric, value, compared with which baseline
+  Metric, value (mean and 95% interval over seeds), base rate, compared with which baseline
 
 What changed from the previous run:
+Outcome (pass, fail or inconclusive, against the threshold above):
 Conclusion:
+Decision taken (and the decision-log entry, if any):
 Next step:
 ```
 
