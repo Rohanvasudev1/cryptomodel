@@ -115,3 +115,86 @@ Next step: build the pool registry from the full history of creation events
   decode/registry.py), then rerun on a full day and measure the share of
   resolved pools. Add V2 LP amounts from pair Transfers to and from 0x0.
 ```
+
+```text
+Run ID: P1-extract-001
+Date: 2026-11-24
+Phase: 1 (AWS extraction pipeline; this PR)
+Question this run answers: Does a filtered year of AWS eth data fit on the Mac's
+  280 GB, how long will the full extraction take, and where is the bottleneck?
+Hypothesis (pre-registered, written before the results): Written after seeing only
+  the first result (2025-11-01 logs: 2.52M rows, 159 MB, 620 s, 1.7 GB RSS); all
+  other results came after. The filtered year is 115 to 180 GB of zstd Parquet
+  (the Phase 0 estimate), and the full extraction finishes in a few days on the Mac
+  with bounded memory.
+Pass threshold (set here, no PLAN.md gate applies): (1) projected year size
+  <= 180 GB, leaving >= 100 GB for derived tables; (2) projected year time <= 72 h;
+  (3) peak RSS of the whole process tree <= 8 GB. The manager later asked for
+  about 24 h; that was not pre-registered and is reported against separately.
+
+Data snapshot date: AWS Public Blockchain Data (s3://aws-public-blockchain/v1.0/eth/)
+  as read on 2026-11-24. Trial days 2025-11-01, 2026-03-15, 2026-09-15 (all five
+  tables); throughput runs also on 2025-11-02 and 2025-11-03.
+Pretraining cutoff date: n/a
+Train, validation and test periods: n/a
+Split: n/a
+Label and label version: n/a
+Base rate: n/a
+Code commit: trial runs from the uncommitted tree on 669caca (manifests say
+  code_dirty: true); the 2-day download run at b2008ec (rebased as 1a2e239);
+  final code in this PR
+  (branch claude/p1-extract-0fc8f0). The filters are the same throughout.
+Config file: none (CLI flags below)
+Seeds: n/a (deterministic)
+Machine: Mac, Apple M1, 8 cores, 16 GB RAM, home internet, AWS us-east-2
+
+Model size: n/a
+Objectives: n/a
+Wall-clock time: stream mode 1,097 s, 1,520 s and 2,075 s for the three trial days;
+  download mode 749 s (2026-09-15) and 935 s for 2025-11-02 to 2025-11-03 together
+
+Results:
+  Rows kept / output MB / stream s per table (2025-11-01; 2026-03-15; 2026-09-15):
+    transactions 1.36M/96/259; 1.78M/147/894; 1.89M/133/946
+    logs         2.52M/159/620; 4.11M/266/570; 4.57M/295/745  (of 3.8M; 5.6M; 6.3M)
+    traces       0.84M/31/1,093; 1.25M/44/1,516; 1.49M/45/2,070 (of 10.5M; 13.5M; 17.1M)
+    blocks       7,153/3.2; 7,175/3.1; 7,170/2.9
+    contracts    174,909/8.6; 185,468/9.1; 23,061/7.1
+  Output per day: 299, 470 and 482 MB from 2.89, 4.23 and 5.27 GB raw.
+  Projected year size: 171 GB (per-table output/raw ratios times the year's raw
+    sizes: logs 97, transactions 53, traces 16, contracts 3, blocks 1).
+  Throughput (raw bytes / wall):
+    stream mode, 2 or 4 workers: 2.2 to 2.3 MB/s -> year about 8 days
+    download mode, 1 day, 5 tasks x 16 connections: 7.0 MB/s -> year about 74 h
+    download mode, 2 days, 10 tasks x 16 connections: 7.1 MB/s -> year about 73 h
+    one object, 64 connections: 6.2 MB/s
+  Bottleneck: the network path to us-east-2. One ranged GET gets 0.7 to 1.3 MB/s,
+    and the aggregate tops out at about 7 MB/s on average (16 MB/s in 15-second
+    peaks). Cloudflare on the same line gets 7.7 to 22.8 MB/s. Projection reads 85%
+    of raw bytes, because the needed `input` columns dominate. Row filters can't be
+    pushed down (topic0 is in a list). Local filtering is cheap: 2.1 s for a full
+    traces day.
+  Peak memory, whole tree: 3.8 GB in stream mode (4 workers); 1.7 GB in download
+    mode with 10 tasks, after switching local reads to DuckDB read_parquet (a
+    pyarrow scanner peaked at 5.4 GB per traces task).
+  Correctness: stream and download outputs have the same rows on 2026-09-15 (row
+    order differs; AWS files are not sorted by block either). Resume re-ran only
+    the 2 failed tables of day 1 and skipped the 3 done (8 s).
+
+What changed from the previous run: first extraction run. Download mode and the
+  DuckDB local reader were added during this run, after stream mode proved slow.
+Outcome: (1) pass, 171 GB; (2) fail, about 74 h in the best mode against 72 h
+  (stream mode about 8 days); the 24 h target is not reachable from this Mac;
+  (3) pass, 1.7 GB.
+Conclusion: The filtered year fits with about 110 GB to spare. Extraction is
+  network-bound at about 7 MB/s to us-east-2. Download mode is 3x faster than
+  streaming and becomes the default; the year takes about 3 days on the Mac.
+Decision taken: CLI default is download mode (--workers 5 --connections 16);
+  stream mode stays as an option. No PLAN.md change.
+Next step: the manager either starts the year on the Mac (about 3 days,
+  resumable), or runs the extractor on an EC2 instance in us-east-2 (a few hours;
+  needs an AWS account, the user's call). Optional speedups: fetch only the
+  projected column chunks (15% fewer bytes), and decide whether to drop
+  traces.input (35 to 40% fewer bytes, loses init code). If disk gets tight, drop
+  logs.transaction_hash first (about 35 GB).
+```

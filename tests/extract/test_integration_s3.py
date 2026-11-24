@@ -16,7 +16,8 @@ from cryptomodel.extract.source import S3Source
 pytestmark = [
     pytest.mark.net,
     pytest.mark.skipif(
-        os.environ.get("CRYPTOMODEL_NET_TESTS") != "1", reason="set CRYPTOMODEL_NET_TESTS=1"
+        os.environ.get("CRYPTOMODEL_NET_TESTS") != "1",
+        reason="set CRYPTOMODEL_NET_TESTS=1",
     ),
 ]
 

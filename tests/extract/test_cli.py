@@ -55,7 +55,9 @@ def test_cli_runs_days_and_tables_then_resumes(
     assert main(args) == 0
     for d in days:
         for t in ("contracts", "blocks"):
-            assert (data_dir / "raw_filtered" / t / f"date={d}" / MANIFEST_NAME).exists()
+            assert (
+                data_dir / "raw_filtered" / t / f"date={d}" / MANIFEST_NAME
+            ).exists()
     assert main(args) == 0
     out = capsys.readouterr().out
     assert out.count("skipped") >= 4
@@ -66,7 +68,20 @@ def test_cli_reports_failure(
 ) -> None:
     monkeypatch.setenv("CRYPTOMODEL_DATA_DIR", str(tmp_path / "data"))
     args = ["--start", "2025-11-01", "--end", "2025-11-01", "--tables", "blocks"]
-    assert main([*args, "--workers", "1", "--mode", "stream", "--source-root", str(aws_root)]) == 1
+    assert (
+        main(
+            [
+                *args,
+                "--workers",
+                "1",
+                "--mode",
+                "stream",
+                "--source-root",
+                str(aws_root),
+            ]
+        )
+        == 1
+    )
 
 
 def test_module_entry_point_runs_workers(

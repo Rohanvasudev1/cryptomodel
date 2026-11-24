@@ -50,14 +50,18 @@ class Source:
         Raises ``FileNotFoundError`` if the partition is missing or empty.
         """
         prefix = f"{self.root}/{table}/date={day.isoformat()}"
-        infos = self.filesystem.get_file_info(pafs.FileSelector(prefix, allow_not_found=True))
+        infos = self.filesystem.get_file_info(
+            pafs.FileSelector(prefix, allow_not_found=True)
+        )
         files = [
             SourceFile(i.path, int(i.size), i.mtime_ns)
             for i in infos
             if i.type == pafs.FileType.File and i.path.endswith(".parquet")
         ]
         if not files:
-            raise FileNotFoundError(f"no parquet files under {self.uri}/{table}/date={day}")
+            raise FileNotFoundError(
+                f"no parquet files under {self.uri}/{table}/date={day}"
+            )
         return sorted(files, key=lambda f: f.path)
 
 
@@ -90,4 +94,6 @@ class LocalSource(Source):
 
     def __init__(self, root: Path, base_url: str | None = None) -> None:
         root = root.resolve()
-        super().__init__(pafs.LocalFileSystem(), str(root), root.as_uri(), base_url=base_url)
+        super().__init__(
+            pafs.LocalFileSystem(), str(root), root.as_uri(), base_url=base_url
+        )

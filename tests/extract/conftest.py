@@ -1,8 +1,8 @@
 """Synthetic AWS-shaped Parquet fixtures. No network.
 
-The schemas copy the real AWS ``v1.0/eth`` schemas (read from the 2025-11-01 partition
-footers). AWS writes missing strings in ``traces`` as the literal ``'None'``; the fixtures
-do the same so the filters are tested against that quirk.
+The schemas copy the real AWS ``v1.0/eth`` schemas (read from the 2025-11-01
+partition footers). AWS writes missing strings in ``traces`` as the literal
+``'None'``; the fixtures do the same so the filters are tested against that quirk.
 """
 
 from __future__ import annotations
@@ -176,9 +176,11 @@ def out_root(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def write_aws(aws_root: Path) -> WriteAws:
-    """Write rows as an AWS-style partition: <root>/<table>/date=YYYY-MM-DD/part-N.parquet."""
+    """Write rows as an AWS partition: <root>/<table>/date=YYYY-MM-DD/part-N.parquet."""
 
-    def _write(table: str, rows: list[dict[str, Any]], day: dt.date = DAY, part: int = 0) -> Path:
+    def _write(
+        table: str, rows: list[dict[str, Any]], day: dt.date = DAY, part: int = 0
+    ) -> Path:
         d = aws_root / table / f"date={day.isoformat()}"
         d.mkdir(parents=True, exist_ok=True)
         path = d / f"part-{part:05d}.snappy.parquet"

@@ -51,7 +51,7 @@ from dataclasses import dataclass, fields
 from typing import Any
 
 import polars as pl
-import pyarrow as pa  # type: ignore[import-untyped]
+import pyarrow as pa
 
 from cryptomodel.decode import events as ev
 from cryptomodel.decode.events import (

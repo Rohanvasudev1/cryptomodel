@@ -36,7 +36,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]
+addopts = ["-ra", "--strict-markers"]
 markers = [
     "net: reads real data over the network; skipped unless CRYPTOMODEL_NET_TESTS=1",
 ]
@@ -53,12 +53,12 @@ module = ["pyarrow.*", "duckdb.*", "Crypto.*"]
 ignore_missing_imports = true
 
 [tool.ruff]
-line-length = 100
+line-length = 88
 target-version = "py312"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "N", "PTH", "C4"]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "N", "PTH", "C4", "FURB"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["N802"]

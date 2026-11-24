@@ -61,11 +61,15 @@ def test_split_ranges_cover_exactly() -> None:
     assert split_ranges(0, 4) == []
 
 
-def test_download_all_reassembles_ranges(aws_root: Path, http_root: str, tmp_path: Path) -> None:
+def test_download_all_reassembles_ranges(
+    aws_root: Path, http_root: str, tmp_path: Path
+) -> None:
     payload = bytes(range(256)) * 41  # 10,496 bytes, many uneven ranges
     (aws_root / "blob.bin").write_bytes(payload)
     dest = tmp_path / "dl" / "blob.bin"
-    n = download_all([Download(f"{http_root}/blob.bin", len(payload), dest)], 8, chunk=333)
+    n = download_all(
+        [Download(f"{http_root}/blob.bin", len(payload), dest)], 8, chunk=333
+    )
     assert n == len(payload)
     assert dest.read_bytes() == payload
 
@@ -91,10 +95,14 @@ def test_download_mode_matches_stream_mode(
     staging = tmp_path / "staging"
 
     streamed = extract_table_day(source, "logs", DAY, tmp_path / "a")
-    downloaded = extract_table_day(source, "logs", DAY, tmp_path / "b", staging_dir=staging)
+    downloaded = extract_table_day(
+        source, "logs", DAY, tmp_path / "b", staging_dir=staging
+    )
 
     rel = Path("logs") / f"date={DAY.isoformat()}" / "data.parquet"
-    assert pq.read_table(tmp_path / "a" / rel).equals(pq.read_table(tmp_path / "b" / rel))
+    assert pq.read_table(tmp_path / "a" / rel).equals(
+        pq.read_table(tmp_path / "b" / rel)
+    )
     assert downloaded.manifest.source_files == streamed.manifest.source_files
     assert downloaded.manifest.extra["mode"] == "download"
     assert streamed.manifest.extra["mode"] == "stream"
@@ -105,22 +113,30 @@ def test_download_mode_matches_stream_mode(
 
 
 def test_s3_source_urls() -> None:
-    f = SourceFile("aws-public-blockchain/v1.0/eth/logs/date=2025-11-01/p.parquet", 1, None)
+    f = SourceFile(
+        "aws-public-blockchain/v1.0/eth/logs/date=2025-11-01/p.parquet", 1, None
+    )
     assert S3Source().url_for(f) == (
         "https://aws-public-blockchain.s3.us-east-2.amazonaws.com/v1.0/eth/logs/date=2025-11-01/p.parquet"
     )
 
 
-@pytest.mark.parametrize("table", ["logs", "transactions", "traces", "blocks", "contracts"])
+@pytest.mark.parametrize(
+    "table", ["logs", "transactions", "traces", "blocks", "contracts"]
+)
 def test_remote_reader_matches_local_reader(
     table: str, write_aws: WriteAws, aws_root: Path, tmp_path: Path
 ) -> None:
     # A non-LocalFileSystem forces the remote (pyarrow scanner) path used against S3.
     transfer = EVENT_TOPICS["ERC20_TRANSFER"].topic0
     rows: dict[str, list[dict[str, object]]] = {
-        "logs": [{"topics": [transfer, h32(i)], "data": "0x" + f"{i:064x}"} for i in range(9)]
+        "logs": [
+            {"topics": [transfer, h32(i)], "data": "0x" + f"{i:064x}"} for i in range(9)
+        ]
         + [{"topics": [h32(5)]}],
-        "transactions": [{"hash": h32(i), "input": "0xa9059cbb", "value": 1e18} for i in range(5)],
+        "transactions": [
+            {"hash": h32(i), "input": "0xa9059cbb", "value": 1e18} for i in range(5)
+        ],
         "traces": [
             {"trace_type": "call", "trace_address": "0", "value": 2e18},
             {"trace_type": "create", "trace_address": "None", "input": "0x6080"},
@@ -147,4 +163,6 @@ def test_remote_reader_matches_local_reader(
     rel = Path(table) / f"date={DAY.isoformat()}" / "data.parquet"
     assert a.manifest.rows == b.manifest.rows > 0
     assert a.manifest.source_rows == b.manifest.source_rows
-    assert pq.read_table(tmp_path / "local" / rel).equals(pq.read_table(tmp_path / "remote" / rel))
+    assert pq.read_table(tmp_path / "local" / rel).equals(
+        pq.read_table(tmp_path / "remote" / rel)
+    )

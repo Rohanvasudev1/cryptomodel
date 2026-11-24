@@ -33,8 +33,13 @@ def test_manifest_records_snapshot_and_provenance(
     assert m.source_rows == 3 and m.rows == 3
     assert [f.path for f in m.source_files] == [str(src)]
     assert m.source_files[0].size == src.stat().st_size
-    assert m.output_bytes == (out_root / "contracts" / PART / "data.parquet").stat().st_size
-    assert m.snapshot_date == dt.datetime.fromisoformat(m.extracted_at).date().isoformat()
+    assert (
+        m.output_bytes
+        == (out_root / "contracts" / PART / "data.parquet").stat().st_size
+    )
+    assert (
+        m.snapshot_date == dt.datetime.fromisoformat(m.extracted_at).date().isoformat()
+    )
     assert m.spec_hash and m.code_commit
     raw = json.loads((out_root / "contracts" / PART / MANIFEST_NAME).read_text())
     assert raw["snapshot_date"] == m.snapshot_date
@@ -48,7 +53,9 @@ def test_second_run_skips(write_aws: WriteAws, aws_root: Path, out_root: Path) -
     assert second.manifest == first.manifest
 
 
-def test_changed_source_is_reextracted(write_aws: WriteAws, aws_root: Path, out_root: Path) -> None:
+def test_changed_source_is_reextracted(
+    write_aws: WriteAws, aws_root: Path, out_root: Path
+) -> None:
     write_aws("contracts", contracts(2))
     extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root)
     write_aws("contracts", contracts(5))  # AWS rewrote the partition
@@ -63,9 +70,15 @@ def test_missing_or_truncated_output_is_reextracted(
     extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root)
     data = out_root / "contracts" / PART / "data.parquet"
     data.write_bytes(data.read_bytes()[:10])
-    assert extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root).status == "written"
+    assert (
+        extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root).status
+        == "written"
+    )
     data.unlink()
-    assert extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root).status == "written"
+    assert (
+        extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root).status
+        == "written"
+    )
 
 
 def test_spec_change_is_reextracted(
@@ -74,7 +87,10 @@ def test_spec_change_is_reextracted(
     write_aws("contracts", contracts(2))
     extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root)
     monkeypatch.setattr(pipeline, "spec_hash", lambda table: "different")
-    assert extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root).status == "written"
+    assert (
+        extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root).status
+        == "written"
+    )
 
 
 def test_crash_mid_write_leaves_no_manifest_and_resumes(
@@ -92,7 +108,10 @@ def test_crash_mid_write_leaves_no_manifest_and_resumes(
     assert not (part / MANIFEST_NAME).exists()
     assert not list(part.glob("*.tmp"))
     monkeypatch.undo()
-    assert extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root).status == "written"
+    assert (
+        extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root).status
+        == "written"
+    )
 
 
 def test_missing_source_partition_raises(aws_root: Path, out_root: Path) -> None:

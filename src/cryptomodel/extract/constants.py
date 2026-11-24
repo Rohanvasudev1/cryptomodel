@@ -1,7 +1,8 @@
 """Constants for the AWS extraction: source location and the log topics we keep.
 
-The topic0 hashes are keccak256 of the event signatures. ``tests/extract/test_constants.py``
-recomputes every hash from its signature, so a typo here fails the tests.
+The topic0 hashes are keccak256 of the event signatures.
+``tests/extract/test_constants.py`` recomputes every hash from its signature, so a
+typo here fails the tests.
 """
 
 from __future__ import annotations

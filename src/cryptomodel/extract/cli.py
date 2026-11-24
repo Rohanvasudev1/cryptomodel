@@ -76,16 +76,23 @@ def run_task(task: Task) -> Outcome:
     except Exception:
         return Outcome(task, "failed", error=traceback.format_exc(limit=3))
     m = r.manifest
-    return Outcome(task, r.status, m.rows, m.output_bytes, m.wall_seconds, m.peak_rss_bytes)
+    return Outcome(
+        task, r.status, m.rows, m.output_bytes, m.wall_seconds, m.peak_rss_bytes
+    )
 
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
-    p = argparse.ArgumentParser(prog="python -m cryptomodel.extract", description=__doc__)
+    p = argparse.ArgumentParser(
+        prog="python -m cryptomodel.extract", description=__doc__
+    )
     p.add_argument("--start", type=dt.date.fromisoformat, required=True)
     p.add_argument("--end", type=dt.date.fromisoformat, required=True, help="inclusive")
     p.add_argument("--tables", nargs="+", choices=TABLES, default=list(DEFAULT_ORDER))
     p.add_argument(
-        "--workers", type=int, default=5, help="(table, day) tasks run at once; 5 = one day"
+        "--workers",
+        type=int,
+        default=5,
+        help="(table, day) tasks run at once; 5 = one day",
     )
     p.add_argument("--duckdb-threads", type=int, default=2)
     p.add_argument("--duckdb-memory", default="1GB")
@@ -98,9 +105,14 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         "stream: read remote Parquet column chunks directly (no local raw copy)",
     )
     p.add_argument(
-        "--connections", type=int, default=16, help="parallel GETs per task (download mode)"
+        "--connections",
+        type=int,
+        default=16,
+        help="parallel GETs per task (download mode)",
     )
-    p.add_argument("--force", action="store_true", help="re-extract even if a manifest matches")
+    p.add_argument(
+        "--force", action="store_true", help="re-extract even if a manifest matches"
+    )
     p.add_argument(
         "--source-root",
         type=Path,
@@ -124,7 +136,16 @@ def main(argv: list[str] | None = None) -> int:
     limits = Limits(args.duckdb_threads, args.duckdb_memory)
     tables = [t for t in DEFAULT_ORDER if t in args.tables]
     tasks = [
-        Task(t, d, out_root, args.source_root, args.force, limits, staging, args.connections)
+        Task(
+            t,
+            d,
+            out_root,
+            args.source_root,
+            args.force,
+            limits,
+            staging,
+            args.connections,
+        )
         for d in date_range(args.start, args.end)
         for t in tables
     ]
@@ -136,7 +157,9 @@ def main(argv: list[str] | None = None) -> int:
     started = time.monotonic()
     failed = 0
     ctx = mp.get_context("spawn")
-    with ProcessPoolExecutor(args.workers, mp_context=ctx, max_tasks_per_child=1) as pool:
+    with ProcessPoolExecutor(
+        args.workers, mp_context=ctx, max_tasks_per_child=1
+    ) as pool:
         futures = [pool.submit(run_task, t) for t in tasks]
         for fut in as_completed(futures):
             try:
@@ -146,7 +169,11 @@ def main(argv: list[str] | None = None) -> int:
             t = o.task
             if o.status == "failed":
                 failed += 1
-                print(f"{t.day} {t.table:<12} failed\n{o.error}", file=sys.stderr, flush=True)
+                print(
+                    f"{t.day} {t.table:<12} failed\n{o.error}",
+                    file=sys.stderr,
+                    flush=True,
+                )
                 print(f"{t.day} {t.table:<12} failed", flush=True)
                 continue
             print(

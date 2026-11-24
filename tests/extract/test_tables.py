@@ -1,4 +1,4 @@
-"""Projection and filtering per table, run through the real pipeline on local fixtures."""
+"""Projection and filtering per table, through the real pipeline on local fixtures."""
 
 from __future__ import annotations
 
@@ -28,7 +28,9 @@ def run(aws_root: Path, out_root: Path, table: str) -> pa.Table:
 # ---------------------------------------------------------------- logs
 
 
-def test_logs_keep_only_listed_topics(write_aws: WriteAws, aws_root: Path, out_root: Path) -> None:
+def test_logs_keep_only_listed_topics(
+    write_aws: WriteAws, aws_root: Path, out_root: Path
+) -> None:
     write_aws(
         "logs",
         [
@@ -72,7 +74,11 @@ def test_logs_projection_and_fixed_size_binary(
     assert row["topic0"] == bytes.fromhex(TRANSFER[2:])
     assert row["topic3"] is None
     assert row["transaction_hash"] == bytes.fromhex(f"{9:064x}")
-    assert (row["block_number"], row["transaction_index"], row["log_index"]) == (23_700_000, 4, 7)
+    assert (row["block_number"], row["transaction_index"], row["log_index"]) == (
+        23_700_000,
+        4,
+        7,
+    )
 
 
 def test_logs_uint256_above_2_pow_53_survives_exactly(
@@ -82,7 +88,11 @@ def test_logs_uint256_above_2_pow_53_survives_exactly(
     write_aws(
         "logs",
         [
-            {"topics": [TRANSFER, h32(1), h32(2)], "data": "0x" + f"{a:064x}", "log_index": i}
+            {
+                "topics": [TRANSFER, h32(1), h32(2)],
+                "data": "0x" + f"{a:064x}",
+                "log_index": i,
+            }
             for i, a in enumerate(amounts)
         ],
     )
@@ -94,7 +104,9 @@ def test_logs_uint256_above_2_pow_53_survives_exactly(
 # ---------------------------------------------------------------- transactions
 
 
-def test_transactions_projection(write_aws: WriteAws, aws_root: Path, out_root: Path) -> None:
+def test_transactions_projection(
+    write_aws: WriteAws, aws_root: Path, out_root: Path
+) -> None:
     write_aws(
         "transactions",
         [
@@ -145,7 +157,10 @@ def test_transactions_value_is_never_stored_as_float(
     # AWS itself stores value as a double, so precision past 2^53 is already gone at the
     # source. We store the double's exact integer as a decimal so nothing downstream
     # can lose more, and flag it as approximate in the column name.
-    write_aws("transactions", [{"hash": h32(1), "value": 1.5e18}, {"hash": h32(2), "value": 7.0}])
+    write_aws(
+        "transactions",
+        [{"hash": h32(1), "value": 1.5e18}, {"hash": h32(2), "value": 7.0}],
+    )
     out = run(aws_root, out_root, "transactions")
     t = out.schema.field("value_wei_approx").type
     assert pa.types.is_decimal(t) and t.scale == 0 and t.precision == 38
@@ -164,11 +179,26 @@ def test_traces_filter(write_aws: WriteAws, aws_root: Path, out_root: Path) -> N
         "traces",
         [
             # 0 top-level call with value: duplicates the transaction, dropped
-            {"trace_type": "call", "call_type": "call", "trace_address": "None", "value": 1e18},
+            {
+                "trace_type": "call",
+                "call_type": "call",
+                "trace_address": "None",
+                "value": 1e18,
+            },
             # 1 internal call with value: kept
-            {"trace_type": "call", "call_type": "call", "trace_address": "0,1", "value": 5e17},
+            {
+                "trace_type": "call",
+                "call_type": "call",
+                "trace_address": "0,1",
+                "value": 5e17,
+            },
             # 2 internal zero-value successful call: dropped
-            {"trace_type": "call", "call_type": "staticcall", "trace_address": "0", "input": sel},
+            {
+                "trace_type": "call",
+                "call_type": "staticcall",
+                "trace_address": "0",
+                "input": sel,
+            },
             # 3 failed internal call to a contract (has a selector): kept
             {
                 "trace_type": "call",
@@ -179,22 +209,40 @@ def test_traces_filter(write_aws: WriteAws, aws_root: Path, out_root: Path) -> N
                 "input": sel + "00" * 32,
             },
             # 4 failed call with no calldata (plain ETH send): dropped
-            {"trace_type": "call", "trace_address": "3", "error": "out of gas", "input": "0x"},
+            {
+                "trace_type": "call",
+                "trace_address": "3",
+                "error": "out of gas",
+                "input": "0x",
+            },
             # 5 create: kept, with init code
             {"trace_type": "create", "trace_address": "None", "input": "0x6080604052"},
             # 6 selfdestruct: kept
             {"trace_type": "suicide", "trace_address": "4"},
             # 7 failed top-level call to a contract: kept (carries the revert reason)
-            {"trace_type": "call", "trace_address": "None", "error": "Reverted", "input": sel},
+            {
+                "trace_type": "call",
+                "trace_address": "None",
+                "error": "Reverted",
+                "input": sel,
+            },
             # 8 child of a reverted call, no error of its own, zero value: dropped
             {"trace_type": "call", "trace_address": "2,0", "status": 0, "input": sel},
         ],
     )
     out = run(aws_root, out_root, "traces")
     kept = out.to_pylist()
-    assert [r["trace_type"] for r in kept] == ["call", "call", "create", "suicide", "call"]
+    assert [r["trace_type"] for r in kept] == [
+        "call",
+        "call",
+        "create",
+        "suicide",
+        "call",
+    ]
     assert [r["trace_address"] for r in kept] == ["0,1", "2", None, "4", None]
-    assert kept[1]["error"] == "Reverted" and kept[1]["selector"] == bytes.fromhex("70a08231")
+    assert kept[1]["error"] == "Reverted" and kept[1]["selector"] == bytes.fromhex(
+        "70a08231"
+    )
     assert kept[2]["init_code"] == bytes.fromhex("6080604052")
     assert kept[0]["init_code"] is None and kept[0]["error"] is None
     assert kept[3]["call_type"] is None  # 'None' string becomes a real null
@@ -208,7 +256,9 @@ def test_traces_filter(write_aws: WriteAws, aws_root: Path, out_root: Path) -> N
 # ---------------------------------------------------------------- blocks, contracts
 
 
-def test_blocks_kept_in_full(write_aws: WriteAws, aws_root: Path, out_root: Path) -> None:
+def test_blocks_kept_in_full(
+    write_aws: WriteAws, aws_root: Path, out_root: Path
+) -> None:
     write_aws(
         "blocks",
         [
@@ -236,10 +286,15 @@ def test_blocks_kept_in_full(write_aws: WriteAws, aws_root: Path, out_root: Path
     assert out.column("extra_data").to_pylist() == [b"\xbe\xef"] * 2
 
 
-def test_contracts_kept_in_full(write_aws: WriteAws, aws_root: Path, out_root: Path) -> None:
+def test_contracts_kept_in_full(
+    write_aws: WriteAws, aws_root: Path, out_root: Path
+) -> None:
     write_aws(
         "contracts",
-        [{"address": addr(i), "bytecode": "0x6080", "block_hash": h32(i)} for i in range(3)],
+        [
+            {"address": addr(i), "bytecode": "0x6080", "block_hash": h32(i)}
+            for i in range(3)
+        ],
     )
     out = run(aws_root, out_root, "contracts")
     assert out.num_rows == 3

@@ -31,11 +31,13 @@ class Download:
 
 
 def split_ranges(size: int, chunk: int = CHUNK_BYTES) -> list[tuple[int, int]]:
-    """Inclusive byte ranges that cover ``size`` bytes in pieces of at most ``chunk``."""
+    """Inclusive byte ranges covering ``size`` bytes, each at most ``chunk`` long."""
     return [(start, min(start + chunk, size) - 1) for start in range(0, size, chunk)]
 
 
-def download_all(items: list[Download], connections: int, chunk: int = CHUNK_BYTES) -> int:
+def download_all(
+    items: list[Download], connections: int, chunk: int = CHUNK_BYTES
+) -> int:
     """Download every item, ``connections`` ranges at a time. Returns bytes fetched.
 
     Each destination is preallocated and filled in place, so ranges can land in any

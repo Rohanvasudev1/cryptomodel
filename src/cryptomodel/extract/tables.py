@@ -3,10 +3,12 @@ the output schema.
 
 Conventions:
 
-- Addresses are ``binary(20)``, hashes and topics ``binary(32)``, other hex blobs ``binary``.
-- AWS writes missing strings as the literal ``'None'`` (traces, ``transactions.to_address``)
-  or as ``''`` (``transactions.receipt_contract_address``). Every string goes through
-  ``nn()`` or ``hexbin()``, which turn both into a real null.
+- Addresses are ``binary(20)``, hashes and topics ``binary(32)``, other hex blobs
+  ``binary``.
+- AWS writes missing strings as the literal ``'None'`` (traces,
+  ``transactions.to_address``) or as ``''``
+  (``transactions.receipt_contract_address``). Every string goes through ``nn()`` or
+  ``hexbin()``, which turn both into a real null.
 - AWS stores ``transactions.value`` and ``traces.value`` as doubles, so precision beyond
   2^53 wei is lost at the source. We keep the double's integer exactly as
   ``decimal(38, 0)`` in ``value_wei_approx``. Token amounts come from ``logs.data``,
@@ -51,7 +53,9 @@ class TableSpec:
     schema: pa.Schema
 
 
-def _spec(name: str, source_columns: list[str], sql: str, fields: list[pa.Field]) -> TableSpec:
+def _spec(
+    name: str, source_columns: list[str], sql: str, fields: list[pa.Field]
+) -> TableSpec:
     return TableSpec(name, tuple(source_columns), sql.strip(), pa.schema(fields))
 
 
@@ -82,8 +86,9 @@ BLOCKS = _spec(
     """
     SELECT number, hexbin(hash), hexbin(parent_hash), utc(timestamp), hexbin(miner),
            hexbin(nonce), difficulty, size, base_fee_per_gas, gas_limit, gas_used,
-           hexbin(extra_data), hexbin(logs_bloom), hexbin(state_root), hexbin(receipts_root),
-           hexbin(transactions_root), hexbin(sha3_uncles), transaction_count
+           hexbin(extra_data), hexbin(logs_bloom), hexbin(state_root),
+           hexbin(receipts_root), hexbin(transactions_root), hexbin(sha3_uncles),
+           transaction_count
     FROM src
     """,
     [
@@ -227,8 +232,9 @@ TRACES = _spec(
         "input",
     ],
     """
-    SELECT block_number, utc(block_timestamp), transaction_index, hexbin(transaction_hash),
-           nn(trace_address), trace_type, nn(call_type), hexbin(from_address),
+    SELECT block_number, utc(block_timestamp), transaction_index,
+           hexbin(transaction_hash), nn(trace_address), trace_type, nn(call_type),
+           hexbin(from_address),
            hexbin(to_address), CAST(value AS DECIMAL(38, 0)), CAST(gas AS BIGINT),
            CAST(gas_used AS BIGINT), status, nn(error), selector(input), hexsize(input),
            CASE WHEN trace_type = 'create' THEN hexbin(input) END
@@ -284,6 +290,14 @@ def spec_hash(table: str) -> str:
     """Fingerprint of a table's filter and schema; a change forces re-extraction."""
     spec = TABLE_SPECS[table]
     text = "\n".join(
-        [str(SPEC_VERSION), MACROS, ",".join(spec.source_columns), spec.sql, str(spec.schema)]
+        [
+            str(SPEC_VERSION),
+            " ".join(
+                MACROS.split()
+            ),  # whitespace-only edits do not force re-extraction
+            ",".join(spec.source_columns),
+            " ".join(spec.sql.split()),
+            str(spec.schema),
+        ]
     )
     return hashlib.sha256(text.encode()).hexdigest()[:16]

@@ -37,7 +37,7 @@ Notes on the filters:
 
 ## Trial: three days
 
-The days were chosen to span the window: the start, around T1, and the test period. These runs used stream mode, 2 workers on day 1 and 4 on days 2 and 3. The spec hashes are the same as the committed code's, and the outputs are identical to download mode (checked on 2026-09-15: same rows in every table).
+The days were chosen to span the window: the start, around T1, and the test period. These runs used stream mode, 2 workers on day 1 and 4 on days 2 and 3. The outputs are identical to download mode (checked on 2026-09-15: same rows in every table).
 
 | Day | Table | Source rows | Rows kept | Raw MB | Output MB | Stream s | Peak RSS MB |
 |---|---|---|---|---|---|---|---|
@@ -129,7 +129,7 @@ The 2025-11 days are smaller than later days, so the year projection uses raw by
 - **To go faster:**
   - **Run the extractor in AWS us-east-2.** An EC2 instance next to the bucket gets in-region S3 bandwidth (hundreds of MB/s) at no transfer cost, so the year would take a few hours. Its output (about 171 GB) would then be copied to the Mac at the home-line rate, about 2 to 8 hours. This needs an AWS account, so it is the user's call.
   - **Read less (not built yet).** Download mode fetches whole objects. Fetching only the byte ranges of the projected column chunks, which are listed in each file's footer, would skip the 15% of bytes not used (about 11 h saved). Also dropping `traces.input` would cut the bytes read by another 35 to 40%, to about 45 h in total. The cost is losing init code and selectors on internal failed calls; top-level failed calls keep their selector in `transactions`. Dropping it is a filter-design decision for the manager.
-- **Commit before the full run.** The trial manifests say `code_dirty: true`, because the trial ran from uncommitted code. The final spec hashes match the committed code's, so the trial outputs stay valid, and the resume logic will skip them.
+- **The trial outputs will be redone.** The trial manifests say `code_dirty: true`, because the trial ran from uncommitted code. The spec hash now ignores SQL whitespace, which changed every table's hash although the filters are the same. So the full run re-extracts the three trial days, about 30 minutes.
 
 ## Pass or fail against the pre-registered thresholds
 

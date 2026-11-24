@@ -101,7 +101,10 @@ def extract_table_day(
     try:
         if stage is not None:
             shutil.rmtree(stage, ignore_errors=True)
-            items = [Download(source.url_for(f), f.size, stage / Path(f.path).name) for f in files]
+            items = [
+                Download(source.url_for(f), f.size, stage / Path(f.path).name)
+                for f in files
+            ]
             t0 = time.monotonic()
             extra["download_bytes"] = download_all(items, connections)
             extra["download_seconds"] = round(time.monotonic() - t0, 2)
@@ -113,13 +116,17 @@ def extract_table_day(
             local = None
         if local is not None:
             source_rows = sum(pq.read_metadata(p).num_rows for p in local)
-            rows = _run(spec, tmp_path, limits, lambda con: _register_local(con, spec, local))
+            rows = _run(
+                spec, tmp_path, limits, lambda con: _register_local(con, spec, local)
+            )
         else:
             dataset = ds.dataset(
                 [f.path for f in files], filesystem=source.filesystem, format="parquet"
             )
             source_rows = dataset.count_rows()
-            rows = _run(spec, tmp_path, limits, lambda con: _register_remote(con, spec, dataset))
+            rows = _run(
+                spec, tmp_path, limits, lambda con: _register_remote(con, spec, dataset)
+            )
         tmp_path.replace(data_path)
         commit, dirty = code_version()
         manifest = Manifest(
@@ -148,7 +155,9 @@ def extract_table_day(
     return ExtractResult("written", manifest)
 
 
-def _register_local(con: duckdb.DuckDBPyConnection, spec: TableSpec, paths: list[str]) -> None:
+def _register_local(
+    con: duckdb.DuckDBPyConnection, spec: TableSpec, paths: list[str]
+) -> None:
     """Local files: DuckDB's own Parquet reader streams them in small vectors (about
     0.6 GB peak on a traces day, against 3 to 5 GB through a pyarrow scanner, whose
     memory grows with AWS's very large row groups)."""
@@ -157,8 +166,10 @@ def _register_local(con: duckdb.DuckDBPyConnection, spec: TableSpec, paths: list
     con.execute(f"CREATE VIEW src AS SELECT {cols} FROM read_parquet([{files}])")
 
 
-def _register_remote(con: duckdb.DuckDBPyConnection, spec: TableSpec, dataset: ds.Dataset) -> None:
-    """Remote files: a pyarrow scanner reads only the projected column chunks over S3."""
+def _register_remote(
+    con: duckdb.DuckDBPyConnection, spec: TableSpec, dataset: ds.Dataset
+) -> None:
+    """Remote files: a pyarrow scanner reads only the projected column chunks."""
     scanner = dataset.scanner(
         columns=list(spec.source_columns),
         batch_size=SCAN_BATCH_ROWS,
@@ -214,7 +225,9 @@ def _run(
     return rows
 
 
-def _flush(writer: pq.ParquetWriter, batches: list[pa.RecordBatch], schema: pa.Schema) -> int:
+def _flush(
+    writer: pq.ParquetWriter, batches: list[pa.RecordBatch], schema: pa.Schema
+) -> int:
     table = pa.Table.from_batches(batches)
     table = table.rename_columns(schema.names).cast(schema)
     writer.write_table(table, row_group_size=table.num_rows)
@@ -222,7 +235,10 @@ def _flush(writer: pq.ParquetWriter, batches: list[pa.RecordBatch], schema: pa.S
 
 
 def peak_rss_bytes() -> int:
-    """Peak resident memory of this process (ru_maxrss is bytes on macOS, KiB on Linux)."""
+    """Peak resident memory of this process.
+
+    ``ru_maxrss`` is in bytes on macOS and in KiB on Linux.
+    """
     peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     return int(peak if sys.platform == "darwin" else peak * 1024)
 
