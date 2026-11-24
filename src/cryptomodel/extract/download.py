@@ -41,7 +41,8 @@ def download_all(
     """Download every item, ``connections`` ranges at a time. Returns bytes fetched.
 
     Each destination is preallocated and filled in place, so ranges can land in any
-    order. A partially written file is removed on failure.
+    order; every range checks it received exactly its length. On the first range
+    that fails for good, queued ranges are cancelled and all destinations removed.
     """
     jobs: list[tuple[Download, int, int]] = []
     for item in items:
@@ -49,17 +50,16 @@ def download_all(
         with item.dest.open("wb") as f:
             f.truncate(item.size)
         jobs.extend((item, a, b) for a, b in split_ranges(item.size, chunk))
+    pool = ThreadPoolExecutor(max_workers=connections)
     try:
-        with ThreadPoolExecutor(max_workers=connections) as pool:
-            fetched = sum(pool.map(lambda j: _fetch_range(*j), jobs))
+        futures = [pool.submit(_fetch_range, *job) for job in jobs]
+        fetched = sum(f.result() for f in futures)
     except BaseException:
+        pool.shutdown(wait=True, cancel_futures=True)
         for item in items:
             item.dest.unlink(missing_ok=True)
         raise
-    for item in items:
-        actual = item.dest.stat().st_size
-        if actual != item.size:
-            raise OSError(f"{item.dest}: expected {item.size} bytes, got {actual}")
+    pool.shutdown()
     return fetched
 
 
@@ -78,12 +78,9 @@ def _fetch_range(item: Download, start: int, end: int) -> int:
             if got != want:
                 raise OSError(f"short read {got} of {want} bytes")
             return got
-        except urllib.error.HTTPError as e:
-            if e.code < 500 or attempt == RETRIES - 1:  # 4xx will not get better
-                raise
-            time.sleep(min(2**attempt, 30))
-        except (OSError, urllib.error.URLError):
-            if attempt == RETRIES - 1:
+        except (OSError, urllib.error.URLError) as e:  # HTTPError is a URLError
+            client_error = isinstance(e, urllib.error.HTTPError) and e.code < 500
+            if client_error or attempt == RETRIES - 1:  # a 4xx will not get better
                 raise
             time.sleep(min(2**attempt, 30))
     raise AssertionError("unreachable")

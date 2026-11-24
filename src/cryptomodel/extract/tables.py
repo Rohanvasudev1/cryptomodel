@@ -208,8 +208,10 @@ LOGS = _spec(
 # - internal calls (non-null trace_address) that move ETH; top-level calls with value
 #   duplicate the transaction row;
 # - calls that errored and carry calldata (a 4-byte selector), i.e. failed calls to
-#   contracts, including the top-level frame. Their reverted children, which have no
-#   error of their own, are dropped.
+#   contract functions, including the top-level frame. Their reverted children, which
+#   have no error of their own, are dropped. Failed calls with no calldata (a plain
+#   ETH send that hit a reverting fallback or receive) are dropped too; at the top
+#   level they are still visible as failed transactions.
 # Whether the callee is a token or pool contract is not known at this stage, so the
 # failed-call filter cannot be narrowed to those; that happens after the event table.
 TRACES = _spec(

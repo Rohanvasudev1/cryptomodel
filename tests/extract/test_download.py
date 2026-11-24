@@ -5,7 +5,9 @@ from __future__ import annotations
 import http.server
 import re
 import threading
+import urllib.error
 from collections.abc import Iterator
+from email.message import Message
 from functools import partial
 from pathlib import Path
 
@@ -13,6 +15,7 @@ import pyarrow.fs as pafs
 import pyarrow.parquet as pq
 import pytest
 
+from cryptomodel.extract import download
 from cryptomodel.extract.constants import EVENT_TOPICS
 from cryptomodel.extract.download import Download, download_all, split_ranges
 from cryptomodel.extract.pipeline import extract_table_day
@@ -166,3 +169,37 @@ def test_remote_reader_matches_local_reader(
     assert pq.read_table(tmp_path / "local" / rel).equals(
         pq.read_table(tmp_path / "remote" / rel)
     )
+
+
+def test_server_error_is_retried(
+    aws_root: Path, http_root: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    payload = b"x" * 1000
+    (aws_root / "flaky.bin").write_bytes(payload)
+    calls = {"n": 0}
+    real_get = download._get
+
+    def flaky_get(url: str, start: int, end: int) -> Iterator[bytes]:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise urllib.error.HTTPError(url, 503, "slow down", Message(), None)
+        if calls["n"] == 2:
+            yield payload[start : start + 10]  # short read, then the connection drops
+            return
+        yield from real_get(url, start, end)
+
+    monkeypatch.setattr(download, "_get", flaky_get)
+    monkeypatch.setattr(download.time, "sleep", lambda s: None)
+    dest = tmp_path / "flaky.bin"
+    assert download_all([Download(f"{http_root}/flaky.bin", 1000, dest)], 1) == 1000
+    assert dest.read_bytes() == payload and calls["n"] == 3
+
+
+def test_client_error_is_not_retried(
+    http_root: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sleeps: list[float] = []
+    monkeypatch.setattr(download.time, "sleep", sleeps.append)
+    with pytest.raises(urllib.error.HTTPError):
+        download_all([Download(f"{http_root}/nope.bin", 10, tmp_path / "n.bin")], 1)
+    assert sleeps == []

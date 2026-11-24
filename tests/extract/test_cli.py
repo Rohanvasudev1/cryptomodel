@@ -109,3 +109,11 @@ def test_module_entry_point_runs_workers(
     )
     assert proc.returncode == 0, proc.stderr
     assert "written" in proc.stdout
+
+
+def test_table_lists_agree() -> None:
+    from cryptomodel.extract.cli import DEFAULT_ORDER
+    from cryptomodel.extract.constants import TABLES
+    from cryptomodel.extract.tables import TABLE_SPECS
+
+    assert set(TABLES) == set(DEFAULT_ORDER) == set(TABLE_SPECS)

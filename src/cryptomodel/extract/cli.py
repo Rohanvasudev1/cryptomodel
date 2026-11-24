@@ -20,6 +20,7 @@ import traceback
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from cryptomodel.extract.constants import TABLES
 from cryptomodel.extract.pipeline import Limits, extract_table_day
@@ -45,7 +46,7 @@ class Task:
 @dataclass(frozen=True)
 class Outcome:
     task: Task
-    status: str  # written | skipped | failed
+    status: Literal["written", "skipped", "failed"]
     rows: int = 0
     output_bytes: int = 0
     wall_seconds: float = 0.0
