@@ -89,10 +89,16 @@ def test_download_mode_matches_stream_mode(
 ) -> None:
     transfer = EVENT_TOPICS["ERC20_TRANSFER"].topic0
     rows = [
-        {"address": addr(i), "topics": [transfer, h32(i)], "data": "0x" + f"{i:064x}"}
-        for i in range(50)
+        {
+            "block_number": 100 + i // 10,
+            "log_index": i % 10,
+            "address": addr(i),
+            "topics": [transfer, h32(i)],
+            "data": "0x" + f"{i:064x}",
+        }
+        for i in range(57)
     ]
-    write_aws("logs", rows, part=0)
+    write_aws("logs", rows[7:], part=0)
     write_aws("logs", rows[:7], part=1)
     source = LocalSource(aws_root, base_url=http_root)
     staging = tmp_path / "staging"

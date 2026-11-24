@@ -186,12 +186,19 @@ def _run(
     limits: Limits,
     register_src: Callable[[duckdb.DuckDBPyConnection], None],
 ) -> int:
-    """Run the spec's SQL over the ``src`` view batch by batch; return rows written."""
+    """Run the spec's SQL over the ``src`` view batch by batch; return rows written.
+
+    The SQL sorts the day, which spills to a temp directory beside the output once it
+    passes the memory limit (never DuckDB's default ``.tmp`` in the working directory,
+    which could be the repo).
+    """
+    spill = out_path.parent / "duckdb_tmp"
     con = duckdb.connect(
         config={
             "threads": limits.duckdb_threads,
             "memory_limit": limits.duckdb_memory,
             "preserve_insertion_order": True,
+            "temp_directory": str(spill),
         }
     )
     rows = 0
@@ -222,6 +229,7 @@ def _run(
                 rows += _flush(writer, buf, spec.schema)
     finally:
         con.close()
+        shutil.rmtree(spill, ignore_errors=True)
     return rows
 
 

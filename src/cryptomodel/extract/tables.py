@@ -14,6 +14,10 @@ Conventions:
   ``decimal(38, 0)`` in ``value_wei_approx``. Token amounts come from ``logs.data``,
   which is exact.
 - Timestamps are ``timestamp[us, UTC]``.
+- Every table is sorted on its natural key, so the output is byte-identical from run
+  to run whatever the source file order or DuckDB's thread count. Traces sort by
+  ``trace_address`` as a list of integers, so a frame precedes its children (depth
+  first) and the top-level frame (null address) comes first.
 """
 
 from __future__ import annotations
@@ -49,7 +53,7 @@ CREATE OR REPLACE MACRO utc(x) AS timezone('UTC', x::TIMESTAMP);
 class TableSpec:
     name: str
     source_columns: tuple[str, ...]
-    sql: str  # reads from the view ``src``; output columns in ``schema`` order
+    sql: str  # reads the view ``src``; output in ``schema`` order, sorted on its key
     schema: pa.Schema
 
 
@@ -90,6 +94,7 @@ BLOCKS = _spec(
            hexbin(receipts_root), hexbin(transactions_root), hexbin(sha3_uncles),
            transaction_count
     FROM src
+    ORDER BY number
     """,
     [
         pa.field("number", pa.int64()),
@@ -143,6 +148,7 @@ TRANSACTIONS = _spec(
            hexbin(receipt_contract_address), transaction_type,
            selector(input), hexsize(input)
     FROM src
+    ORDER BY block_number, transaction_index
     """,
     [
         pa.field("hash", HASH),
@@ -186,6 +192,7 @@ LOGS = _spec(
            hexbin(data)
     FROM src
     WHERE lower(topics[1]) IN ({_TOPIC_LIST})
+    ORDER BY block_number, log_index
     """,
     [
         pa.field("block_number", pa.int64()),
@@ -244,6 +251,9 @@ TRACES = _spec(
     WHERE trace_type IN ('create', 'suicide')
        OR (trace_type = 'call' AND nn(trace_address) IS NOT NULL AND value > 0)
        OR (trace_type = 'call' AND nn(error) IS NOT NULL AND length(nn(input)) >= 10)
+    ORDER BY block_number, transaction_index,
+             CAST(string_split(nn(trace_address), ',') AS INTEGER[])
+             NULLS FIRST
     """,
     [
         pa.field("block_number", pa.int64()),
@@ -273,6 +283,7 @@ CONTRACTS = _spec(
     SELECT hexbin(address), hexbin(bytecode), block_number, hexbin(block_hash),
            utc(block_timestamp)
     FROM src
+    ORDER BY block_number, address
     """,
     [
         pa.field("address", ADDR),

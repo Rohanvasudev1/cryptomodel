@@ -119,17 +119,20 @@ def test_transactions_projection(
                 "gas": 60_000,
                 "receipt_status": 1,
                 "block_number": 5,
+                "transaction_index": 0,
                 "receipt_contract_address": "",  # AWS uses '' here, not 'None'
             },
             {  # contract creation: AWS writes the missing to_address as 'None'
                 "hash": h32(2),
                 "from_address": addr(1),
                 "to_address": "None",
+                "block_number": 5,
+                "transaction_index": 1,
                 "receipt_contract_address": addr(3),
                 "input": "0x6080",
                 "receipt_status": 0,
             },
-            {"hash": h32(3), "input": "0x"},
+            {"hash": h32(3), "block_number": 6, "input": "0x"},
         ],
     )
     out = run(aws_root, out_root, "transactions")
@@ -215,13 +218,20 @@ def test_traces_filter(write_aws: WriteAws, aws_root: Path, out_root: Path) -> N
                 "error": "out of gas",
                 "input": "0x",
             },
-            # 5 create: kept, with init code
-            {"trace_type": "create", "trace_address": "None", "input": "0x6080604052"},
+            # 5 create (its own transaction): kept, with init code
+            {
+                "trace_type": "create",
+                "transaction_index": 1,
+                "trace_address": "None",
+                "input": "0x6080604052",
+            },
             # 6 selfdestruct: kept
             {"trace_type": "suicide", "trace_address": "4"},
-            # 7 failed top-level call to a contract: kept (carries the revert reason)
+            # 7 failed top-level call to a contract (its own transaction): kept
+            # (carries the revert reason)
             {
                 "trace_type": "call",
+                "transaction_index": 2,
                 "trace_address": "None",
                 "error": "Reverted",
                 "input": sel,
@@ -235,17 +245,17 @@ def test_traces_filter(write_aws: WriteAws, aws_root: Path, out_root: Path) -> N
     assert [r["trace_type"] for r in kept] == [
         "call",
         "call",
-        "create",
         "suicide",
+        "create",
         "call",
     ]
-    assert [r["trace_address"] for r in kept] == ["0,1", "2", None, "4", None]
+    assert [r["trace_address"] for r in kept] == ["0,1", "2", "4", None, None]
     assert kept[1]["error"] == "Reverted" and kept[1]["selector"] == bytes.fromhex(
         "70a08231"
     )
-    assert kept[2]["init_code"] == bytes.fromhex("6080604052")
+    assert kept[3]["init_code"] == bytes.fromhex("6080604052")
     assert kept[0]["init_code"] is None and kept[0]["error"] is None
-    assert kept[3]["call_type"] is None  # 'None' string becomes a real null
+    assert kept[2]["call_type"] is None  # 'None' string becomes a real null
     s = out.schema
     assert "input" not in s.names and "output" not in s.names
     assert s.field("from_address").type == pa.binary(20)
