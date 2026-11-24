@@ -1,18 +1,18 @@
 # Phase 0 novelty check
 
-Date: 2026-11-24. Scope: work from 2024 to 2026, plus older papers that later work builds on.
+Date: 2026-11-24. Scope: work from 2024 to 2026, plus older papers that later work builds on. Contributions and fixed decisions (including the train and validation end dates T1 and T2) are defined in [PLAN.md](../../PLAN.md). Preprints count as published for the gate.
 
 ## Summary
 
-- **Contribution 1 (token-launch foundation model): novel.** No paper pretrains a self-supervised model on unlabeled token-launch sequences and fine-tunes it for rug pulls or honeypots. Several papers come close. TokenScout (CCS 2024) scores the first 500 transfers of ERC-20 tokens with a temporal GNN, but it trains with labels. BlockScan, BERT4ETH and its successors, and EWE-1 pretrain on transactions, accounts or wallets, not on token launches.
+- **Contribution 1 (token-launch foundation model): novel.** No paper found pretrains a self-supervised model on unlabeled token-launch sequences and fine-tunes it for rug pulls or honeypots. Several papers come close. TokenScout (CCS 2024) scores the first 500 transfers of ERC-20 tokens with a temporal GNN, but it trains with labels. BlockScan, BERT4ETH and its successors, and EWE-1 pretrain on transactions, accounts or wallets, not on token launches.
 - **Contribution 2 (leakage-free benchmark): partly covered.** Since 2026, Solana papers use chronological splits, embargoes and minute-level cutoffs. Early Rug Pull Detection on Solana (2611.13342) is the closest. No benchmark covers EVM chains, honeypots, multiple fixed horizons (5, 15 and 60 minutes, 500 transfers, 24 hours) and a ranking metric at once.
 - **Contribution 3 (pretraining-cutoff rule): partly covered.** The idea is established for LLMs (Time Machine GPT, DatedGPT), and time-series foundation-model papers raise it. No paper measures it for transaction or event-sequence foundation models, on-chain or off.
-- **Released weights:** one blockchain transaction foundation model has public weights: EWE-1 (Apache-2.0, Ethereum wallets, trained on all 2024–2025 transactions). BlockScan links a code and model repo. BERT4ETH-line models release code only.
-- **Phase 0 gate: pass.** No published paper does contribution 1.
+- **Released weights:** the only confirmed public weights are EWE-1 (Apache-2.0, Ethereum wallets, trained on all 2024–2025 transactions). BlockScan links a code and model repo (not opened, weights unconfirmed). For BERT4ETH-line models only code was seen; weights are unconfirmed.
+- **Phase 0 gate: pass (provisional).** No paper found does contribution 1. Two close neighbours could not be read at source (DeFiTrust, Hunting in the Dark Forest); see the gate section.
 
 ## Method
 
-Searches ran from 2026-11-24 through a general web search engine, with queries aimed at arXiv, Semantic Scholar, Google Scholar, OpenReview, the ACM Digital Library and IEEE venues. Queries covered: pretrained or self-supervised blockchain transaction models; BERT4ETH successors; CoLES on wallets; token-launch, rug-pull, honeypot and memecoin detection; early detection after launch; time-split blockchain benchmarks; pretraining-cutoff leakage in foundation models; and released weights on Hugging Face.
+Searches ran on 2026-11-24 through a general web search engine, with queries aimed at arXiv, Semantic Scholar, Google Scholar, OpenReview, the ACM Digital Library and IEEE venues. Queries covered: pretrained or self-supervised blockchain transaction models; BERT4ETH successors; CoLES on wallets; token-launch, rug-pull, honeypot and memecoin detection; early detection after launch; time-split blockchain benchmarks; pretraining-cutoff leakage in foundation models; and released weights on Hugging Face.
 
 "Opened" means the abstract page and, where noted, the full text were read by this session or a fetch subagent. "Snippet" means only search results were seen.
 
@@ -21,11 +21,13 @@ Limits:
 - The ACM DL and ScienceDirect returned HTTP 403, so ACM-only and Elsevier-only papers were judged from other copies or from snippets. TokenScout was read from the authors' PDF.
 - Google Scholar and OpenReview were not queried through their own search pages. Coverage of those comes through the web search engine.
 - Several abstract-page answers rest on partly truncated HTML. Each entry says so where it matters.
+- USENIX Security, NDSS, IEEE S&P, ICSE and FSE were covered by venue-named queries through the same engine, not by reading their accepted-paper lists. Those queries surfaced only pre-2024 measurement papers (USENIX Security 2021 honeypots, 2023 token ecosystem) and the journal or ACM papers in the "security and SE venue queries" table below; none pretrains on token launches.
 - Workshop papers that are not on arXiv are likely under-covered.
+- Snippet-only rows give authors and full dates only where the snippet showed them.
 
 ## Overlap key
 
-For each paper, C1, C2 and C3 refer to the three contributions. Overlap is **none**, **partial** or **overlapping**.
+For each paper, C1, C2 and C3 refer to the three contributions. Overlap is **none**, **partial** or **overlapping**. Where a bare **none** has no reason, the reason is the default for that contribution: no self-supervised pretraining on token launches (C1), no time split or fixed post-launch horizon (C2), or no measurement of pretraining-cutoff leakage (C3). The per-paper scale rates one paper; the contribution verdicts weigh all papers together, so one **overlapping** paper can sit under a **partly covered** verdict.
 
 ## 1. Pretrained or self-supervised models over blockchain data
 
@@ -55,11 +57,11 @@ For each paper, C1, C2 and C3 refer to the three contributions. Overlap is **non
 - C2 **none**.
 - C3 **none**, but it matters for C3: its pretraining window covers all of 2024–2025. Any downstream test in that period would leak, so it can serve as a natural "leaky" baseline.
 
-### Hunting in the Dark Forest: A Pre-trained Model for On-chain Attack Transaction Detection in Web3 — opened (aggregator summary only)
+### Hunting in the Dark Forest: A Pre-trained Model for On-chain Attack Transaction Detection in Web3 — not opened at source (Crossref metadata and an aggregator summary only)
 
 - Authors: Zhiying Wu, Jiajing Wu, Hui Zhang, Zibin Zheng, Weiqiang Wang
-- Venue: The Web Conference (WWW) 2025. Read via [chatpaper.com/paper/130086](https://chatpaper.com/paper/130086). [OpenReview forum](https://openreview.net/forum?id=vo7EHT3iBs) (not opened).
-- What it does: pretrains a transaction encoder by reconstruction, weakly supervised by function comments, then detects attack transactions with few or no labels. Reports finding 1,692 address-poisoning attacks.
+- Venue: Proceedings of the ACM Web Conference 2025 (WWW '25), pp. 4519–4530, April 2025. DOI [10.1145/3696410.3714928](https://doi.org/10.1145/3696410.3714928), confirmed via Crossref. Method read only via [chatpaper.com/paper/130086](https://chatpaper.com/paper/130086). [OpenReview forum](https://openreview.net/forum?id=vo7EHT3iBs) (blocked by a browser check). No arXiv copy found.
+- What it does (per the aggregator, unverified): pretrains a transaction encoder by reconstruction, weakly supervised by function comments, then detects attack transactions with few or no labels. Reports finding 1,692 address-poisoning attacks.
 - C1 **partial**: pretrained on unlabeled transactions, but per transaction, for attacks, not token launches.
 - C2 **none**. C3 **none**.
 
@@ -85,7 +87,7 @@ For each paper, C1, C2 and C3 refer to the three contributions. Overlap is **non
 | ZipZap (WWW 2024) | [doi 10.1145/3589334.3645352](https://doi.org/10.1145/3589334.3645352) | Efficiency successor to BERT4ETH | partial: account-level | none | none |
 | TLMG4Eth (2024, IEEE TIFS 2025) | [2409.07494](https://arxiv.org/abs/2409.07494) | Transaction language model plus graph, fraud detection | partial: account-level | none | none |
 | IGT4ETH (AAAI 2026) | [AAAI proceedings](https://ojs.aaai.org/index.php/AAAI/article/view/39536/43497) | Ethereum account classification with contrastive pretraining | partial: account-level | none | none |
-| DeFiTrust (Expert Systems with Applications, 2024) | [ScienceDirect](https://www.sciencedirect.com/science/article/abs/pii/S0957417424007796) (403) | Supervised transformer over token event logs plus social sentiment, classifies scam tokens | partial: sequences of token events, but supervised and no pretraining | none known | none |
+| DeFiTrust (Expert Systems with Applications, 2024) | [ScienceDirect](https://www.sciencedirect.com/science/article/abs/pii/S0957417424007796) (403; Crossref and Semantic Scholar rate-limited) | Per the snippet: a transformer over token event logs plus social-sentiment sequences that classifies scam tokens. Not verified | partial: token event sequences; snippet shows a supervised classifier, but pretraining is unconfirmed | unknown | none |
 | Blockchain Large Language Models / BlockGPT (Gai et al., 2023) | [2304.12749](https://arxiv.org/abs/2304.12749) | GPT-style model over transaction traces for attack detection | partial: per-transaction | none | none |
 | TRM Labs Blockchain Foundation Model (blog) | [trmlabs.com](https://www.trmlabs.com/trm-tech-blog/foundation-models-for-blockchain-intelligence-in-the-ai-arms-race) | Proprietary address-behavior foundation model, no paper or weights | partial: address-level, closed | none | none |
 
@@ -167,10 +169,19 @@ For each paper, C1, C2 and C3 refer to the three contributions. Overlap is **non
 | Predicting the success of new crypto-tokens on Pump.fun (2026) | [2602.14860](https://arxiv.org/abs/2602.14860) | Early-trading signals for token success | none | partial: early window | none |
 | MemeChain: multimodal cross-chain meme-coin dataset (2026) | [2601.22185](https://arxiv.org/abs/2601.22185) | Cross-chain meme-coin forensics dataset | none | partial: dataset | none |
 | SoK: DeFi Rug Pulls: Types, Dataset, and Tool Assessment (2025) | [doi 10.1145/3728900](https://doi.org/10.1145/3728900) | Rug-pull taxonomy and tool comparison | none | partial: dataset | none |
-| Characterizing Transfer Graphs of Suspicious ERC-20 Tokens (Josenhans et al., 2025) | [2501.11668](https://arxiv.org/abs/2501.11668) (abstract opened) | Per-token transfer graphs, simple classifier, about 88.7% accuracy | none | none | none |
+| Characterizing Transfer Graphs of Suspicious ERC-20 Tokens (Josenhans, Kuehlkamp, Nabrzyski; January 2025; abstract opened) | [2501.11668](https://arxiv.org/abs/2501.11668) | Per-token transfer graphs, simple classifier, about 88.7% accuracy | none | none | none |
 | Do not rug on me (Mazorra et al., 2022) | [2201.07220](https://arxiv.org/abs/2201.07220) | FT-Transformer on tabular Uniswap features | none | none | none |
 | Trade or Trick? Scam tokens on Uniswap (Xia et al., 2021) | [2109.00229](https://arxiv.org/abs/2109.00229) | Feature-based scam-token classifier | none | none | none |
-| FinSurvival (WWW Companion 2026) | snippet only | Aave v3 time-to-event benchmark with temporal splits | none | partial: time splits, DeFi lending | none |
+| FinSurvival (WWW Companion 2026) | no link seen | Aave v3 time-to-event benchmark with temporal splits | none | partial: time splits, DeFi lending | none |
+
+### Security and SE venue queries — snippet only
+
+| Paper | Link | Note | C1 | C2 | C3 |
+|---|---|---|---|---|---|
+| RPHunter: Unveiling Rug Pull Schemes in Crypto Token via Code-and-Transaction Fusion Analysis (IEEE TSE 2026) | [2506.18398](https://arxiv.org/abs/2506.18398) | Supervised GNNs over code and transfer graphs, fused with attention | none: supervised | none known | none |
+| OctopusGuard: K-Line Enhanced Token Scam Detector Powered by Multimodal LLMs (ACM, venue not confirmed) | [doi 10.1145/3744916.3787845](https://doi.org/10.1145/3744916.3787845) | Fine-tunes a pretrained multimodal LLM on price charts and token data | partial: a pretrained model, but a general LLM, not one pretrained on token sequences | none known | none |
+| LROO Rug Pull Detector: A Leakage-Resistant Framework Based on On-Chain and OSINT Signals (2026) | [2603.11324](https://arxiv.org/abs/2603.11324) | Rug-pull detector designed to resist leakage | none | partial: leakage-aware rug-pull evaluation; split and horizons unchecked | none |
+| Slow is Fast! Dissecting Ethereum's Slow Liquidity Drain Scams (2025) | [2503.04850](https://arxiv.org/abs/2503.04850) | Measurement of slow liquidity-drain rug pulls on Ethereum; relevant to our rug-pull label | none | none: informs labels, not splits | none |
 
 ## 3. Leakage from the pretraining cutoff
 
@@ -179,9 +190,9 @@ For each paper, C1, C2 and C3 refer to the three contributions. Overlap is **non
 | DatedGPT: Preventing Lookahead Bias in LLMs with Time-Aware Pretraining (Yan, Tang, Gao, Jiang, Lu; March 2026) | [2603.11838](https://arxiv.org/abs/2603.11838) | opened (abstract) | Twelve 1.3B LLMs with annual cutoffs from 2013 to 2024. Models that see the future earn a measurable "lookahead premium" (26.4 basis points per standard deviation) in return prediction | none | none | **partial**: measures cutoff leakage, but for text LLMs and with no rule for choosing the cutoff |
 | Time Machine GPT (Drinkall, Rahimikia, Pierrehumbert, Zohren; NAACL Findings 2024) | [2404.18543](https://arxiv.org/abs/2404.18543) | opened (abstract) | Point-in-time LLMs for backtesting | none | none | **partial**: same idea for text, no measured size in the abstract |
 | Rethinking Evaluation in the Era of Time Series Foundation Models: (Un)known Information Leakage Challenges (Meyer, Kaltenpoth, Zalipski, Müller; Oct 2025) | [2510.13654](https://arxiv.org/abs/2510.13654) | opened (abstract) | Position paper on train/test overlap and temporal overlap in time-series foundation-model evaluation | none | none | **partial**: names the problem, proposes no rule |
-| Rethinking Multimodal Time-Series Forecasting Evaluation / TimesX (Liu, Zhou, Sen, Prakash, Das; ICML 2026) | [2607.06973](https://arxiv.org/abs/2607.06973) | opened (abstract) | Recommends evaluating after a model's knowledge cutoff | none | none | partial |
+| Rethinking Multimodal Time-Series Forecasting Evaluation / TimesX (Liu, Zhou, Sen, Prakash, Das; ICML 2026) | [2607.06973](https://arxiv.org/abs/2607.06973) | opened (abstract) | Recommends evaluating after a model's knowledge cutoff | none | none | **partial**: argues for post-cutoff evaluation, no measurement of cutoff leakage |
 | SkinAdvisor (Fan et al.; AAAI 2027 IAAI; Nov 2026) | [2611.15023](https://arxiv.org/abs/2611.15023) | opened (abstract) | Pretrained embeddings leak temporal information into a downstream forecast, so it splits by season | none | none | **partial**: the closest example of leakage through a frozen encoder, but a single anecdote in game sales |
-| GIFT-Eval (2024) | [2410.10393](https://arxiv.org/abs/2410.10393) | snippet | Overlap between pretraining and test data inflates time-series foundation-model scores | none | none | partial |
+| GIFT-Eval (2024) | [2410.10393](https://arxiv.org/abs/2410.10393) | snippet | Overlap between pretraining and test data inflates time-series foundation-model scores | none | none | **partial**: pretraining-test overlap, not a cutoff |
 
 No paper found measures cutoff leakage for a transaction, event-sequence or blockchain foundation model, or proposes a rule for choosing the cutoff from the downstream test periods.
 
@@ -200,36 +211,43 @@ No paper found measures cutoff leakage for a transaction, event-sequence or bloc
 | Contribution | Verdict | Reason |
 |---|---|---|
 | 1. Token-launch foundation model pretrained on unlabeled token sequences | **Novel** | The pretrained on-chain models found are per transaction (BlockScan, Dark Forest), per account (BERT4ETH line) or per wallet (EWE-1). The token-level early-detection models found (TokenScout, MELT, the Solana papers) are supervised. None combines self-supervised pretraining on token-launch sequences with rug-pull or honeypot fine-tuning. |
-| 2. Leakage-free benchmark with time splits and fixed horizons | **Partly covered** | Chronological splits, embargoes and minute-level cutoffs are now standard on Solana (2611.13342, MELT, Catching the Rug). TM-RugPull makes the leakage argument on EVM chains, and TokenScout uses a 500-transfer window. No benchmark yet combines Ethereum plus held-out EVM chains, rug-pull and honeypot labels, all five horizons and precision at the top 1% of daily launches. |
+| 2. Leakage-free benchmark with time splits and fixed horizons | **Partly covered** | Chronological splits, embargoes and minute-level cutoffs are now common on Solana (Early Rug Pull Detection on Solana and MELT; Catching the Rug describes a forward split, though its results could not be confirmed to use it). TM-RugPull makes the leakage argument on EVM chains, and TokenScout uses a 500-transfer window. No benchmark yet combines Ethereum plus held-out EVM chains, rug-pull and honeypot labels, all five horizons and precision at the top 1% of daily launches. |
 | 3. Pretraining-cutoff rule tested by measuring leakage | **Partly covered** | The idea is established for LLMs (DatedGPT measures its size), and time-series foundation-model papers raise it. It has not been measured for transaction or event-sequence foundation models, and no paper proposes a cutoff rule tied to downstream splits. |
 
-## Phase 0 gate: **pass**
+## Phase 0 gate: **pass (provisional)**
 
-No published paper does contribution 1. The closest, TokenScout, scores a token from its first 500 transfers but learns only from labels. It has no unlabeled pretraining, no transfer across tasks or chains and no random-vs-time split analysis. Phase 1 may start.
+The gate asks whether a published paper (preprints included) already pretrains a model on unlabeled token-launch sequences. None found does. The closest, TokenScout, scores a token from its first 500 transfers but learns only from labels, with no unlabeled pretraining.
+
+Two neighbours could not be read at source and keep the pass provisional:
+
+- **DeFiTrust** (Expert Systems with Applications, 2024): a transformer over token event logs. If it pretrains on unlabeled token logs, it overlaps contribution 1. Read it before writing the related-work section.
+- **Hunting in the Dark Forest** (WWW 2025): pretrained on transactions for attack detection. The aggregator summary puts it at the transaction level with no token task; confirm from the ACM or OpenReview copy.
+
+This report covers only the novelty gate. The other Phase 0 items (downstream task list, fixed decisions table) are still open.
 
 Watch TokenScout's authors and the Solana early-detection groups (Bahrak; Yanovich and Vodolazov). A pretrained successor from either would close the gap. Re-run this search before submission.
 
 ## How to reposition threatened contributions
 
-**Contribution 1 (novel but crowded).** Do not frame it as "the first blockchain foundation model". BlockScan, BERT4ETH and EWE-1 take that claim. Frame it as **the first foundation model whose unit is a token launch**: pretrained on the first events after first liquidity, scored at fixed horizons. Required comparisons:
+**Contribution 1 (novel but crowded).** Do not frame it as "the first blockchain foundation model". BlockScan, BERT4ETH and EWE-1 take that claim. Frame it as **the first foundation model whose unit is a token launch**: pretrained on the first events after first liquidity, scored at fixed horizons. Comparisons to include:
 
 - TokenScout or a temporal-GNN equivalent.
 - EWE-1 and BlockScan embeddings pooled per token, as off-the-shelf foundation-model baselines.
-- A LightGBM model on hand-built early features. 2611.18914 and MELT both find that sequence models struggle to beat it, so this is the bar that matters.
+- A LightGBM model on hand-built early features. Relvas and Bernardo (2611.18914) and MELT both find that sequence models struggle to beat it, so this is the bar that matters.
 
-**Contribution 2 (partly covered).** Credit 2611.13342, MELT and TM-RugPull for time splits and post-collapse leakage. Claim what they lack:
+**Contribution 2 (partly covered).** Credit Early Rug Pull Detection on Solana, MELT and TM-RugPull for time splits and post-collapse leakage. Claim what they lack:
 
 - EVM chains, with BSC and Base held out.
 - Honeypot and rug-pull labels at the same horizons.
 - Clock-time horizons (5, 15 and 60 minutes, 24 hours) next to an event-count horizon (500 transfers, matching TokenScout).
 - An operational ranking metric: precision at the top 1% of daily launches.
-- A random-vs-time split gap measured on one dataset, extending 2611.13342's single comparison.
+- A random-vs-time split gap measured on one dataset, extending the single comparison in Early Rug Pull Detection on Solana.
 
-**Contribution 3 (partly covered).** Cite DatedGPT and Time Machine GPT as the LLM version. Claim the first *measurement* for event-sequence foundation models, and the first *rule*. Pretrain a family of models with staggered cutoffs, then report how downstream PR-AUC and precision at 1% move as the cutoff passes T1 and T2. EWE-1, trained on all 2024–2025 data, is a ready-made leaky baseline for any 2024–2025 test window. 2611.18914 already shows evaluation leakage in public transaction benchmarks, which supports the motivation.
+**Contribution 3 (partly covered).** Cite DatedGPT and Time Machine GPT as the LLM version. Claim the first *measurement* for event-sequence foundation models, and the first *rule*. Pretrain a family of models with staggered cutoffs, then report how downstream PR-AUC and precision at 1% move as the cutoff passes T1 and T2. EWE-1, trained on all 2024–2025 data, is a ready-made leaky baseline for any 2024–2025 test window. Relvas and Bernardo (2611.18914) already show evaluation leakage in public transaction benchmarks, which supports the motivation.
 
 ## Papers not opened, worth a later check
 
 - ZipZap, TLMG4Eth, IGT4ETH: account-level models, which should not change contribution 1.
-- DeFiTrust: blocked by ScienceDirect. It is a supervised transformer over token event logs, so check it has no pretraining.
-- Hunting in the Dark Forest: read only through an aggregator. Check the OpenReview or ACM version.
+- DeFiTrust and Hunting in the Dark Forest: see the gate section. These two come first.
+- RPHunter, OctopusGuard, LROO: found by the security and SE venue queries, snippet only.
 - The GitHub repos for BlockScan and BERT4ETH: confirm whether weights are released.
