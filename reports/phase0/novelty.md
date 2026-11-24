@@ -4,11 +4,11 @@ Date: 2026-11-24. Scope: work from 2024 to 2026, plus older papers that later wo
 
 ## Summary
 
-- **Contribution 1 (token-launch foundation model): novel.** No paper found pretrains a self-supervised model on unlabeled token-launch sequences and fine-tunes it for rug pulls or honeypots. Several papers come close. TokenScout (CCS 2024) scores the first 500 transfers of ERC-20 tokens with a temporal GNN, but it trains with labels. BlockScan, BERT4ETH and its successors, and EWE-1 pretrain on transactions, accounts or wallets, not on token launches.
+- **Contribution 1 (token-launch foundation model): novel.** No paper found pretrains a self-supervised model on unlabeled token-launch sequences and fine-tunes it for rug pulls or honeypots. This includes the two papers the first pass could not read: DeFiTrust trains a token-level transformer with labels only (per its released code; the full text is paywalled), and Hunting in the Dark Forest pretrains per transaction, not per token. Several papers come close. TokenScout (CCS 2024) scores the first 500 transfers of ERC-20 tokens with a temporal GNN, but it trains with labels. BlockScan, BERT4ETH and its successors, and EWE-1 pretrain on transactions, accounts or wallets, not on token launches.
 - **Contribution 2 (leakage-free benchmark): partly covered.** Since 2026, Solana papers use chronological splits, embargoes and minute-level cutoffs. Early Rug Pull Detection on Solana (2611.13342) is the closest. No benchmark covers EVM chains, honeypots, multiple fixed horizons (5, 15 and 60 minutes, 500 transfers, 24 hours) and a ranking metric at once.
 - **Contribution 3 (pretraining-cutoff rule): partly covered.** The idea is established for LLMs (Time Machine GPT, DatedGPT), and time-series foundation-model papers raise it. No paper measures it for transaction or event-sequence foundation models, on-chain or off.
 - **Released weights:** the only confirmed public weights are EWE-1 (Apache-2.0, Ethereum wallets, trained on all 2024–2025 transactions). BlockScan links a code and model repo (not opened, weights unconfirmed). For BERT4ETH-line models only code was seen; weights are unconfirmed.
-- **Phase 0 gate: pass (provisional).** No paper found does contribution 1. Two close neighbours could not be read at source (DeFiTrust, Hunting in the Dark Forest); see the gate section.
+- **Phase 0 gate: pass.** No paper found does contribution 1. The two neighbours that kept the pass provisional have now been checked: Hunting in the Dark Forest was read in full, and DeFiTrust through its abstract and the authors' training code (its full text is paywalled). Neither pretrains on token-launch sequences; see the gate section.
 
 ## Method
 
@@ -57,13 +57,35 @@ For each paper, C1, C2 and C3 refer to the three contributions. Overlap is **non
 - C2 **none**.
 - C3 **none**, but it matters for C3: its pretraining window covers all of 2024–2025. Any downstream test in that period would leak, so it can serve as a natural "leaky" baseline.
 
-### Hunting in the Dark Forest: A Pre-trained Model for On-chain Attack Transaction Detection in Web3 — not opened at source (Crossref metadata and an aggregator summary only)
+### Hunting in the Dark Forest: A Pre-trained Model for On-chain Attack Transaction Detection in Web3 — opened (full PDF)
 
 - Authors: Zhiying Wu, Jiajing Wu, Hui Zhang, Zibin Zheng, Weiqiang Wang
-- Venue: Proceedings of the ACM Web Conference 2025 (WWW '25), pp. 4519–4530, April 2025. DOI [10.1145/3696410.3714928](https://doi.org/10.1145/3696410.3714928), confirmed via Crossref. Method read only via [chatpaper.com/paper/130086](https://chatpaper.com/paper/130086). [OpenReview forum](https://openreview.net/forum?id=vo7EHT3iBs) (blocked by a browser check). No arXiv copy found.
-- What it does (per the aggregator, unverified): pretrains a transaction encoder by reconstruction, weakly supervised by function comments, then detects attack transactions with few or no labels. Reports finding 1,692 address-poisoning attacks.
-- C1 **partial**: pretrained on unlabeled transactions, but per transaction, for attacks, not token launches.
+- Venue: Proceedings of the ACM Web Conference 2025 (WWW '25), pp. 4519–4530, April 2025. DOI [10.1145/3696410.3714928](https://doi.org/10.1145/3696410.3714928), confirmed via Crossref.
+- Copy read: the 12-page camera-ready PDF in the authors' repo [github.com/wuzhy1ng/attack_trans_detection_www25](https://github.com/wuzhy1ng/attack_trans_detection_www25), which the paper's abstract links to. Routes that failed: ACM DL (403), OpenReview PDF and API (403, browser challenge), arXiv (no copy), Semantic Scholar (abstract only, PDF link points to ACM).
+- What it does:
+  - **Unit: one transaction.** Each transaction becomes a heterogeneous graph of accounts, contracts, executed code blocks and logs. A graph transformer pools it into one vector (§4.1.1).
+  - **Pretraining: yes, on 1M transactions sampled from 18M Ethereum blocks, with no attack labels (§5.1.1).** It is weakly supervised, not purely self-supervised. The loss is an autoencoder reconstruction term plus a CLIP-style contrastive term that matches the transaction to the comment of the first function it calls, embedded by a frozen CodeBERT (§4.1.2, Eq. 1). The abstract calls the comments "supervision information, rather than expert-confirmed labels". Dropping the comment term cuts F1 by 61% (Table 2).
+  - **Detection:** a random forest on 10, 30 or all labels, or a zero-shot isolation forest on reconstruction error (§4.2). It reports finding 1,692 address-poisoning attacks.
+  - **Timing: no fixed times after launch.** It has no notion of a token or a launch, and scores each transaction as it arrives, in about 1.62 s per transaction (§5.4).
+  - Honeypots are one of its five attack classes (Table 1), and 13 rug-pull transactions turned up incidentally (Table 3), always as single transactions.
+- C1 **partial**: the closest precedent for a pretrained Web3 model used few-shot or zero-shot, but per transaction, for attacks, and not over token-launch sequences.
 - C2 **none**. C3 **none**.
+
+### DeFiTrust: A Transformer-Based Framework for Scam DeFi Token Detection Using Event Logs and Sentiment Analysis — not opened at source (abstract and the authors' training code read; full text paywalled)
+
+- Authors: Maneesha Gunathilaka, Sandareka Wickramanayake, H.M.N. Dilum Bandara
+- Venue: Expert Systems with Applications, vol. 251, 2024. DOI [10.1016/j.eswa.2024.123913](https://doi.org/10.1016/j.eswa.2024.123913), ScienceDirect PII S0957417424007796.
+- Copies read: the abstract via [colab.ws](https://colab.ws/articles/10.1016/j.eswa.2024.123913), and the authors' code at [github.com/mdgunathilaka/DeFi_Trust](https://github.com/mdgunathilaka/DeFi_Trust), linked from co-author Wickramanayake's [publications page](https://sandareka.github.io/publications/). From the code we read the README, the feature and dataset scripts, and the model and training cells with saved outputs in `Publish_DeFi_Latest.ipynb`. The method below comes from that code, not the paper, so it cannot be tied to the paper's sections.
+- Routes that failed for the full text: ScienceDirect (403), Elsevier API (needs a key), ResearchGate (403), Semantic Scholar (marked closed, no abstract), arXiv (no preprint), CORE and Unpaywall (queries did not return usable results), web search (no preprint or thesis). Two citing papers were checked. TrapHunter ([2607.18753](https://arxiv.org/abs/2607.18753), ref. 16) mentions it in one line and wrongly says it learns from bytecode. DeFiFusion ([2609.11008](https://arxiv.org/abs/2609.11008)) cites it without describing it.
+- What it does:
+  - **Unit: one token**, an ERC-20 contract classified as scam or legitimate. It has two inputs:
+    - **Transfer events** grouped into buckets of 10, each with 7 hand-made features (block gap, volume, minted, burnt, unique addresses, Gini, average gas), up to 108 buckets.
+    - **Up to 100 Reddit posts** about the token, each scored as a 5-dimensional sentiment vector.
+  - **Pretraining: none.** Two transformer encoders and an MLP head are trained from scratch with supervised binary cross-entropy only: 10 epochs, batch size 8, learning rate 1e-3, on 24,238 labeled tokens split 19,632 / 2,182 / 2,424. About 2.5% of each split is the positive class. Explanations use Integrated Gradients.
+  - **Timing: no clock-time windows after launch.** Early detection cuts the sequence to its first n buckets of 10 transfers (`predict_n_step`). Tokens with 100 or fewer transfers are dropped (`DataCreator.py`), so it cannot score a token in its first minutes.
+- C1 **partial**: the closest task framing, a transformer over a token's event sequence that detects scams early. But it is supervised only, with hand-made features and social sentiment, and no unlabeled pretraining. It is a baseline to beat, not a pre-emption.
+- C2 **partial**: early detection by transfer count, but no clock-time horizons and no time split confirmed.
+- C3 **none**.
 
 ### KGBERT4Eth — opened (abstract and partial full text)
 
@@ -87,7 +109,6 @@ For each paper, C1, C2 and C3 refer to the three contributions. Overlap is **non
 | ZipZap (WWW 2024) | [doi 10.1145/3589334.3645352](https://doi.org/10.1145/3589334.3645352) | Efficiency successor to BERT4ETH | partial: account-level | none | none |
 | TLMG4Eth (2024, IEEE TIFS 2025) | [2409.07494](https://arxiv.org/abs/2409.07494) | Transaction language model plus graph, fraud detection | partial: account-level | none | none |
 | IGT4ETH (AAAI 2026) | [AAAI proceedings](https://ojs.aaai.org/index.php/AAAI/article/view/39536/43497) | Ethereum account classification with contrastive pretraining | partial: account-level | none | none |
-| DeFiTrust (Expert Systems with Applications, 2024) | [ScienceDirect](https://www.sciencedirect.com/science/article/abs/pii/S0957417424007796) (403; Crossref and Semantic Scholar rate-limited) | Per the snippet: a transformer over token event logs plus social-sentiment sequences that classifies scam tokens. Not verified | partial: token event sequences; snippet shows a supervised classifier, but pretraining is unconfirmed | unknown | none |
 | Blockchain Large Language Models / BlockGPT (Gai et al., 2023) | [2304.12749](https://arxiv.org/abs/2304.12749) | GPT-style model over transaction traces for attack detection | partial: per-transaction | none | none |
 | TRM Labs Blockchain Foundation Model (blog) | [trmlabs.com](https://www.trmlabs.com/trm-tech-blog/foundation-models-for-blockchain-intelligence-in-the-ai-arms-race) | Proprietary address-behavior foundation model, no paper or weights | partial: address-level, closed | none | none |
 
@@ -210,18 +231,20 @@ No paper found measures cutoff leakage for a transaction, event-sequence or bloc
 
 | Contribution | Verdict | Reason |
 |---|---|---|
-| 1. Token-launch foundation model pretrained on unlabeled token sequences | **Novel** | The pretrained on-chain models found are per transaction (BlockScan, Dark Forest), per account (BERT4ETH line) or per wallet (EWE-1). The token-level early-detection models found (TokenScout, MELT, the Solana papers) are supervised. None combines self-supervised pretraining on token-launch sequences with rug-pull or honeypot fine-tuning. |
+| 1. Token-launch foundation model pretrained on unlabeled token sequences | **Novel** | The pretrained on-chain models found are per transaction (BlockScan, Dark Forest), per account (BERT4ETH line) or per wallet (EWE-1). The token-level early-detection models found (TokenScout, DeFiTrust, MELT, the Solana papers) are supervised. None combines self-supervised pretraining on token-launch sequences with rug-pull or honeypot fine-tuning. |
 | 2. Leakage-free benchmark with time splits and fixed horizons | **Partly covered** | Chronological splits, embargoes and minute-level cutoffs are now common on Solana (Early Rug Pull Detection on Solana and MELT; Catching the Rug describes a forward split, though its results could not be confirmed to use it). TM-RugPull makes the leakage argument on EVM chains, and TokenScout uses a 500-transfer window. No benchmark yet combines Ethereum plus held-out EVM chains, rug-pull and honeypot labels, all five horizons and precision at the top 1% of daily launches. |
 | 3. Pretraining-cutoff rule tested by measuring leakage | **Partly covered** | The idea is established for LLMs (DatedGPT measures its size), and time-series foundation-model papers raise it. It has not been measured for transaction or event-sequence foundation models, and no paper proposes a cutoff rule tied to downstream splits. |
 
-## Phase 0 gate: **pass (provisional)**
+## Phase 0 gate: **pass**
 
 The gate asks whether a published paper (preprints included) already pretrains a model on unlabeled token-launch sequences. None found does. The closest, TokenScout, scores a token from its first 500 transfers but learns only from labels, with no unlabeled pretraining.
 
-Two neighbours could not be read at source and keep the pass provisional:
+The pass was provisional because two neighbours had not been read. Both are now checked, and neither closes the gap:
 
-- **DeFiTrust** (Expert Systems with Applications, 2024): a transformer over token event logs. If it pretrains on unlabeled token logs, it overlaps contribution 1. Read it before writing the related-work section.
-- **Hunting in the Dark Forest** (WWW 2025): pretrained on transactions for attack detection. The aggregator summary puts it at the transaction level with no token task; confirm from the ACM or OpenReview copy.
+- **Hunting in the Dark Forest** (WWW 2025), read in full: it pretrains on 1M unlabeled transactions, but its unit is one transaction, it has no token or launch concept, and it does not score at fixed times. It is a precedent for pretraining then few-shot detection, not for contribution 1.
+- **DeFiTrust** (Expert Systems with Applications, 2024), read through its abstract and the authors' training code: its unit is a token, but it trains only with labels, with no pretraining, and it drops tokens with 100 or fewer transfers. The paper's full text stays paywalled, so a pretraining stage described only in the text cannot be fully ruled out. The released training notebook has none, which makes this unlikely.
+
+Cite both in related work: Dark Forest for the pretrained-then-few-shot design, DeFiTrust as the nearest token-level baseline.
 
 This report covers only the novelty gate. The other Phase 0 items (downstream task list, fixed decisions table) are still open.
 
@@ -248,6 +271,6 @@ Watch TokenScout's authors and the Solana early-detection groups (Bahrak; Yanovi
 ## Papers not opened, worth a later check
 
 - ZipZap, TLMG4Eth, IGT4ETH: account-level models, which should not change contribution 1.
-- DeFiTrust and Hunting in the Dark Forest: see the gate section. These two come first.
+- DeFiTrust full text: still paywalled (ScienceDirect 403). Its abstract and code were read; read the paper itself when library access is available, before writing related work.
 - RPHunter, OctopusGuard, LROO: found by the security and SE venue queries, snippet only.
 - The GitHub repos for BlockScan and BERT4ETH: confirm whether weights are released.

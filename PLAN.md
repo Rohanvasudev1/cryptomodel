@@ -95,7 +95,7 @@ Expected time: 1 week.
 
 Gate: no published paper already does contribution 1. If one does, rewrite the goal before writing code.
 
-Gate status: passes provisionally. Two close papers could not be read at source, DeFiTrust (2024) and Hunting in the Dark Forest (WWW 2025). A separate session is checking them.
+Gate status: passes. The two close papers that kept it provisional were checked, and neither pretrains on token-launch sequences. Hunting in the Dark Forest (WWW 2025) pretrains per transaction. DeFiTrust (2024) is a token-level classifier trained with labels only, per its released code (its full text is paywalled). See `reports/phase0/novelty.md`.
 
 ## Phase 1: data platform
 
@@ -246,7 +246,6 @@ Still undecided after Phase 0. Move each item to the decision log once it is set
 - **AWS data license.** AWS states no license for the data itself. Either email AWS about republishing derived Parquet, or publish only labels, addresses and code that regenerates the data.
 - **BSC extraction is deferred to Phase 7.** AWS has no BSC logs or traces. Choose then between Envio HyperSync (needs a free token) and cryo against a paid BSC trace RPC, for the test window only.
 - **Etherscan's answer.** The phishing task waits on it (see the decision log).
-- **Novelty gate.** The pass is provisional until DeFiTrust and Hunting in the Dark Forest are read.
 - **One-day rug task.** `reports/phase0/tasks_and_datasets.md` (task R2) proposes an extra secondary task: the Cernera and Huynh rule, a pool with one mint and one burn where the creator burns 99% or more of the LP tokens. It is not yet accepted.
 
 ## Risks to check early
