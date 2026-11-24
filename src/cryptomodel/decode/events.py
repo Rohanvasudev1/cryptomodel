@@ -544,7 +544,14 @@ DECODERS: dict[str, Callable[[str, Topics, str], DecodedEvent]] = {
 }
 """topic0 -> decoder."""
 
-_ERC721_SHARED_TOPIC0 = frozenset({c.ERC20_TRANSFER, c.ERC20_APPROVAL})
+
+def canonical_topic0(topic0: str) -> str:
+    """Lowercase with a `0x` prefix, the form used as keys in `DECODERS`."""
+    text = topic0.lower()
+    return text if text.startswith("0x") else "0x" + text
+
+
+_TOPIC0_SHARED_WITH_ERC721 = frozenset({c.ERC20_TRANSFER, c.ERC20_APPROVAL})
 
 
 def decode_log(address: str, topics: Topics, data: str) -> DecodedEvent | None:
@@ -554,10 +561,10 @@ def decode_log(address: str, topics: Topics, data: str) -> DecodedEvent | None:
     """
     if not topics or topics[0] is None:
         return None
-    topic0 = topics[0].lower()
+    topic0 = canonical_topic0(topics[0])
     decoder = DECODERS.get(topic0)
     if decoder is None:
         return None
-    if topic0 in _ERC721_SHARED_TOPIC0 and len(topics) == 4:
+    if topic0 in _TOPIC0_SHARED_WITH_ERC721 and len(topics) == 4:
         return None  # ERC-721 Transfer/Approval: tokenId is the 4th topic
     return decoder(address, topics, data)

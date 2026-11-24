@@ -6,6 +6,8 @@ import _decode_fixtures as fx
 import polars as pl
 import pyarrow as pa  # type: ignore[import-untyped]
 import pytest
+from _decode_fixtures import topic_addr as _topic_addr
+from _decode_fixtures import word as _word
 
 from cryptomodel.decode import constants
 from cryptomodel.decode.batch import (
@@ -22,14 +24,6 @@ USDC = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7"
 UNKNOWN_FACTORY = "0x" + "12" * 20
-
-
-def _word(value: int) -> str:
-    return f"{value % (1 << 256):064x}"
-
-
-def _topic_addr(address: str) -> str:
-    return "0x" + address[2:].rjust(64, "0")
 
 
 # A PoolCreated for the real WETH/USDT pool 0x4e68...fa36, but emitted by a
@@ -301,3 +295,27 @@ def test_attach_pool_info_can_be_rerun_with_a_later_registry() -> None:
     row = attach_pool_info(out.dex_action, later).row(0, named=True)
     assert (row["dex"], row["token0"], row["token1"], row["fee"]) == ("pancakeswap", WETH, USDT, 100)
     assert row["pool_resolved"] is True
+
+
+def test_null_gap_in_topic_columns_is_an_error_not_a_shift() -> None:
+    # topic1 null but topic2 set: must not be read as a 2-topic log.
+    frame = (
+        _logs_frame([fx.V2_BURN])
+        .with_columns(
+            topic0=pl.col("topics").list.get(0),
+            topic1=pl.lit(None, dtype=pl.String),
+            topic2=pl.col("topics").list.get(2),
+            topic3=pl.lit(None, dtype=pl.String),
+        )
+        .drop("topics")
+    )
+    out = decode_logs(frame)
+    assert out.events["v2_burn"].height == 0
+    assert out.errors.height == 1
+    assert "topic1 is missing" in out.errors["error"][0]
+
+
+def test_topic0_without_0x_prefix_is_recognised() -> None:
+    log = fx.V2_SYNC
+    out = decode_logs(_logs_frame([fx.RawLog(log.address, [log.topics[0][2:]], log.data, 1, log.tx_hash, 0)]))
+    assert out.events["v2_sync"].height == 1

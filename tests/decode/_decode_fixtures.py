@@ -23,6 +23,16 @@ class RawLog:
     log_index: int
 
 
+def word(value: int) -> str:
+    """Encode an int as one ABI word, two's complement for negatives (no 0x)."""
+    return f"{value % (1 << 256):064x}"
+
+
+def topic_addr(address: str) -> str:
+    """An address as an indexed-topic word."""
+    return "0x" + address[2:].rjust(64, "0")
+
+
 def _t(word: str) -> str:
     return "0x" + word.rjust(64, "0")
 

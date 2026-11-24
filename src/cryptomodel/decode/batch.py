@@ -34,10 +34,16 @@ One row per pool creation, swap, liquidity mint, liquidity burn or fee collect.
   the event. Null for creates and for V4 ModifyLiquidity, which has no amounts.
 - `liquidity_delta`: signed liquidity change for V3 mint and burn and V4 modify;
   null for V2 (V2 LP tokens are ERC-20 Transfers, not in these events).
+- `fee`: on create rows the pool's configured fee (for V4 this may be the
+  0x800000 dynamic-fee flag); on V4 swap rows the fee charged by that swap;
+  on other rows the configured fee from the registry.
+- `version`: from the event layout (`v2`, `v3`, `v4`), so it is known even for
+  unresolved pools.
 - `token0`, `token1`, `factory`, `dex`, `fee`: on create rows they come from the
   event. Other rows get them from the pool registry (`attach_pool_info`); if the
   pool's creation event has not been seen they stay null and `pool_resolved` is
-  false.
+  false. (`unknown_fork` means the creating factory is known to be unlisted;
+  a null `dex` means the pool's creation has not been seen at all.)
 """
 
 from collections.abc import Iterable, Mapping
@@ -48,11 +54,10 @@ import polars as pl
 import pyarrow as pa  # type: ignore[import-untyped]
 
 from cryptomodel.decode import events as ev
-from cryptomodel.decode.events import DECODERS, EVENT_CLASSES, DecodedEvent, DecodeError, decode_log
+from cryptomodel.decode.events import DECODERS, EVENT_CLASSES, DecodedEvent, DecodeError, canonical_topic0, decode_log
 from cryptomodel.decode.registry import KNOWN_FACTORIES, UNKNOWN_FORK, factory_label
 
 __all__ = [
-    "DEX_ACTIONS",
     "EVENT_KINDS",
     "LOG_COLUMNS",
     "POOL_REGISTRY_SCHEMA",
@@ -67,7 +72,6 @@ LOG_COLUMNS = ("address", "topics", "data", "transaction_hash", "log_index", "bl
 """Columns `decode_logs` needs (`topic0`..`topic3` may replace `topics`)."""
 
 EVENT_KINDS: tuple[str, ...] = tuple(cls.KIND for cls in EVENT_CLASSES)
-DEX_ACTIONS = ("create", "swap", "mint", "burn", "collect")
 
 _SMALL_INT_FIELDS = frozenset({"fee", "tick", "tick_lower", "tick_upper", "tick_spacing"})
 """int24/uint24 fields, safe as Int64. Every other int field is a decimal string."""
@@ -149,7 +153,7 @@ def _event_values(event: DecodedEvent) -> dict[str, Any]:
     return out
 
 
-def _dec(value: int | None) -> str | None:
+def _to_decimal(value: int | None) -> str | None:
     return None if value is None else str(value)
 
 
@@ -201,8 +205,8 @@ def _dex_action(event: DecodedEvent) -> dict[str, Any] | None:
                 emitter=event.pair,
                 version="v2",
                 sender=event.sender,
-                amount0=_dec(event.amount0),
-                amount1=_dec(event.amount1),
+                amount0=_to_decimal(event.amount0),
+                amount1=_to_decimal(event.amount1),
             )
         case ev.V2Burn():
             return dict(
@@ -212,8 +216,8 @@ def _dex_action(event: DecodedEvent) -> dict[str, Any] | None:
                 version="v2",
                 sender=event.sender,
                 recipient=event.to,
-                amount0=_dec(event.amount0),
-                amount1=_dec(event.amount1),
+                amount0=_to_decimal(event.amount0),
+                amount1=_to_decimal(event.amount1),
             )
         case ev.V2Swap():
             return dict(
@@ -223,8 +227,8 @@ def _dex_action(event: DecodedEvent) -> dict[str, Any] | None:
                 version="v2",
                 sender=event.sender,
                 recipient=event.to,
-                amount0=_dec(event.amount0_in - event.amount0_out),
-                amount1=_dec(event.amount1_in - event.amount1_out),
+                amount0=_to_decimal(event.amount0_in - event.amount0_out),
+                amount1=_to_decimal(event.amount1_in - event.amount1_out),
             )
         case ev.V3Mint():
             return dict(
@@ -234,9 +238,9 @@ def _dex_action(event: DecodedEvent) -> dict[str, Any] | None:
                 version="v3",
                 sender=event.sender,
                 owner=event.owner,
-                amount0=_dec(event.amount0),
-                amount1=_dec(event.amount1),
-                liquidity_delta=_dec(event.amount),
+                amount0=_to_decimal(event.amount0),
+                amount1=_to_decimal(event.amount1),
+                liquidity_delta=_to_decimal(event.amount),
                 tick_lower=event.tick_lower,
                 tick_upper=event.tick_upper,
             )
@@ -247,9 +251,9 @@ def _dex_action(event: DecodedEvent) -> dict[str, Any] | None:
                 emitter=event.pool,
                 version="v3",
                 owner=event.owner,
-                amount0=_dec(event.amount0),
-                amount1=_dec(event.amount1),
-                liquidity_delta=_dec(-event.amount),
+                amount0=_to_decimal(event.amount0),
+                amount1=_to_decimal(event.amount1),
+                liquidity_delta=_to_decimal(-event.amount),
                 tick_lower=event.tick_lower,
                 tick_upper=event.tick_upper,
             )
@@ -261,8 +265,8 @@ def _dex_action(event: DecodedEvent) -> dict[str, Any] | None:
                 version="v3",
                 owner=event.owner,
                 recipient=event.recipient,
-                amount0=_dec(event.amount0),
-                amount1=_dec(event.amount1),
+                amount0=_to_decimal(event.amount0),
+                amount1=_to_decimal(event.amount1),
                 tick_lower=event.tick_lower,
                 tick_upper=event.tick_upper,
             )
@@ -274,8 +278,8 @@ def _dex_action(event: DecodedEvent) -> dict[str, Any] | None:
                 version="v3",
                 sender=event.sender,
                 recipient=event.recipient,
-                amount0=_dec(event.amount0),
-                amount1=_dec(event.amount1),
+                amount0=_to_decimal(event.amount0),
+                amount1=_to_decimal(event.amount1),
             )
         case ev.V4ModifyLiquidity():
             delta = event.liquidity_delta
@@ -286,7 +290,7 @@ def _dex_action(event: DecodedEvent) -> dict[str, Any] | None:
                 emitter=event.pool_manager,
                 version="v4",
                 sender=event.sender,
-                liquidity_delta=_dec(delta),
+                liquidity_delta=_to_decimal(delta),
                 tick_lower=event.tick_lower,
                 tick_upper=event.tick_upper,
             )
@@ -298,8 +302,8 @@ def _dex_action(event: DecodedEvent) -> dict[str, Any] | None:
                 emitter=event.pool_manager,
                 version="v4",
                 sender=event.sender,
-                amount0=_dec(-event.amount0),
-                amount1=_dec(-event.amount1),
+                amount0=_to_decimal(-event.amount0),
+                amount1=_to_decimal(-event.amount1),
                 fee=event.fee,
             )
         case _:
@@ -312,7 +316,12 @@ def _normalize_logs(logs: pa.Table | pl.DataFrame) -> pl.DataFrame:
         raise TypeError(f"expected a pyarrow Table or polars DataFrame, got {type(logs).__name__}")
     if "topics" not in df.columns and "topic0" in df.columns:
         topic_cols = [c for c in ("topic0", "topic1", "topic2", "topic3") if c in df.columns]
-        df = df.with_columns(pl.concat_list(topic_cols).list.drop_nulls().alias("topics"))
+        # Drop trailing null topics only; a null before a non-null topic stays a
+        # null so the decoder rejects the log instead of shifting topics down.
+        n_topics = pl.max_horizontal(
+            pl.when(pl.col(col).is_not_null()).then(i + 1).otherwise(0) for i, col in enumerate(topic_cols)
+        )
+        df = df.with_columns(pl.concat_list(topic_cols).list.head(n_topics).alias("topics"))
     missing = [c for c in LOG_COLUMNS if c not in df.columns]
     if missing:
         raise ValueError(f"logs table is missing columns: {', '.join(missing)}")
@@ -456,7 +465,9 @@ def decode_logs(logs: pa.Table | pl.DataFrame, pool_registry: pl.DataFrame | Non
     df = _normalize_logs(logs)
     ts_dtype = df.schema["block_timestamp"]
     known_topic0 = pl.Series(list(DECODERS), dtype=pl.String)
-    candidates = df.filter(pl.col("topics").list.first().str.to_lowercase().is_in(known_topic0.implode()))
+    topic0 = pl.col("topics").list.first().str.to_lowercase()
+    topic0 = pl.when(topic0.str.starts_with("0x")).then(topic0).otherwise(pl.lit("0x") + topic0)
+    candidates = df.filter(topic0.is_in(known_topic0.implode()))
 
     by_kind: dict[str, list[dict[str, Any]]] = {kind: [] for kind in EVENT_KINDS}
     actions: list[dict[str, Any]] = []
@@ -471,7 +482,7 @@ def decode_logs(logs: pa.Table | pl.DataFrame, pool_registry: pl.DataFrame | Non
         try:
             event = decode_log(address, topics, data)
         except DecodeError as exc:
-            errors.append(meta | {"address": address, "topic0": topics[0].lower(), "error": str(exc)})
+            errors.append(meta | {"address": address, "topic0": canonical_topic0(topics[0]), "error": str(exc)})
             continue
         if event is None:
             continue

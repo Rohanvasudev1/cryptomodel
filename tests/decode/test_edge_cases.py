@@ -2,21 +2,14 @@
 
 import _decode_fixtures as fx
 import pytest
+from _decode_fixtures import topic_addr as _topic_addr
+from _decode_fixtures import word as _word
 
 from cryptomodel.decode import constants
 from cryptomodel.decode import events as ev
 from cryptomodel.decode.events import DecodeError, decode_log
 
 ADDR = "0x" + "11" * 20
-
-
-def _word(value: int) -> str:
-    """Encode an int as one ABI word (two's complement for negatives)."""
-    return f"{value % (1 << 256):064x}"
-
-
-def _topic_addr(address: str) -> str:
-    return "0x" + address[2:].rjust(64, "0")
 
 
 def test_most_negative_int256_round_trips() -> None:
@@ -116,3 +109,10 @@ def test_zero_amounts_decode_as_zero_not_missing() -> None:
     data = "0x" + _word(0) * 2
     sync = decode_log(ADDR, [constants.V2_SYNC], data)
     assert sync == ev.V2Sync(pair=ADDR, reserve0=0, reserve1=0)
+
+
+def test_topic0_without_0x_prefix_is_recognised() -> None:
+    log = fx.V2_SYNC
+    assert decode_log(log.address, [log.topics[0][2:].upper()], log.data) == decode_log(
+        log.address, log.topics, log.data
+    )
