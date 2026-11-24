@@ -7,11 +7,11 @@ Method: read vendor docs and pricing pages, listed the public AWS S3 bucket (obj
 ## Summary
 
 - **Use AWS Public Blockchain Data (`s3://aws-public-blockchain/v1.0/eth/`) as the primary Ethereum source.** It is free, needs no account, is already Parquet, holds all five tables (blocks, transactions, logs, traces, token transfers) plus contracts from 2015-07-30, and is updated daily (latest partition 2026-11-23).
-- **A raw year does not fit on 280 GB.** Nov 2025 to Oct 2026 is 1.86 TB on AWS (traces alone 0.98 TB). Phase 1 must stream each day, project columns and filter rows before writing locally. A filtered local copy should be about 100 to 180 GB (estimate below).
+- **A raw year does not fit on 280 GB.** Nov 2025 to Oct 2026 is 1.86 TB on AWS (traces alone 0.98 TB). Phase 1 must stream each day, project columns and filter rows before writing locally. A filtered local copy should be about 115 to 180 GB (estimate below).
 - **BigQuery is the fallback and cross-check, not the primary.** Scanning is cheap (about 5 TiB, about $25 for a year), but getting the data out costs about $0.12/GiB in egress (about $200+ for a full year) and needs a billed GCP project.
-- **cryo plus a paid RPC is for gaps only**: BSC logs and traces, and receipts or traces AWS lacks. About $80 to $250 for a year of Ethereum. Self-hosted Erigon or Reth needs 535 GB to 2.8 TB and does not fit.
+- **cryo plus a paid RPC is for gaps only**: BSC logs and traces, and receipts or traces AWS lacks. A year of Ethereum costs about $50 (Chainstack) to $360 (Infura), or about $80 to $250 on Alchemy or QuickNode. Self-hosted Erigon or Reth needs 535 GB to 2.8 TB and does not fit.
 - **Paradigm's data portal is stale** (ends around March 2023, no logs or traces) and cannot be used for 2025 or 2026.
-- **Proposed dates:** extraction window 2025-11-01 to 2026-10-31, T1 = 2026-03-31, T2 = 2026-06-30, pretraining cutoff = T2, test launches 2026-08-01 to 2026-09-30, with labels observed to 2026-10-30.
+- **Proposed dates:** extraction window 2025-11-01 to 2026-10-31, T1 = 2026-03-31, T2 = 2026-06-30, pretraining cutoff = T2, test launches 2026-07-31 to 2026-09-30, with labels observed to 2026-10-30.
 
 ## Source comparison
 
@@ -22,10 +22,10 @@ Method: read vendor docs and pricing pages, listed the public AWS S3 bucket (obj
 | Traces | Yes, Parity-style | Yes, Parity-style | Yes, Parity-style | No | Yes, needs `trace_block` (Erigon or Reth backend) | Archive node only |
 | Token transfers | ERC-20 only | ERC-20 and ERC-721 | ERC-20, 721 and 1155 | No | `erc20_transfers` dataset | Through cryo |
 | Cost for one year | $0 | About $25 to scan plus about $200 egress (estimate) | Same as left | $0 | About $80 to $250 | Hardware only |
-| Time to extract | About 6 to 12 h streaming at 50 to 100 MB/s (estimate) | Hours, mostly the download | Same as left | n/a | About 17 to 36 h at plan rate limits (estimate) | Days to sync, then fast |
-| Parquet size per year | 1.86 TB raw (measured from listing) | 0.5 to 1 TB+ per year of traces alone (estimate) | Similar | n/a | Similar to AWS | n/a |
+| Time to extract | About 6 to 12 h streaming at 50 to 100 MB/s (estimate) | Hours, mostly the download | Same as left | n/a | About 17 to 36 h at the provider's plan rate limit (estimate) | Days to sync, then fast |
+| Parquet size per year | 1.86 TB raw (measured from listing) | About 2 to 3 TB (estimate: the 2023 traces export ran about 460 B per row, so about 2.4 TB for a year of traces) | Similar | n/a | Similar to AWS | n/a |
 | Fits 280 GB raw | No, filtered yes | No, filtered yes | No, filtered yes | n/a | No, filtered yes | No (535 GB to 2.8 TB node) |
-| Rate limits | None stated, normal S3 | 1 GB per export file, 50 TiB extract per day, 200 TiB query per day default | Same as left | None | Provider RPS or CU caps | None |
+| Rate limits (RPS = requests per second; CU, RU = provider billing units) | None stated, normal S3 | 1 GB per export file, 50 TiB extract per day, 200 TiB query per day default | Same as left | None | Provider RPS or CU caps | None |
 | License for data | Not stated; registry links an MIT code license; "experimental" | Not stated; code MIT | Pre-GA terms; data license not stated | CC0 | Provider ToS; Alchemy bans scraping and data mining | Your own node |
 | BSC | Blocks and transactions only (BNB Chain maintains it) | None | None | None | Yes with a BSC trace node | Yes, but larger |
 | Base | Full tables (SonarX), about a week behind | None | Separate listing `base-data-pdp.base_mainnet` (unverified) | None | Yes (unverified on traces) | Base archive 4.1 TB, 128 GB RAM |
@@ -35,7 +35,7 @@ Method: read vendor docs and pricing pages, listed the public AWS S3 bucket (obj
 ### AWS Public Blockchain Data (recommended)
 
 - **Layout:** `s3://aws-public-blockchain/v1.0/eth/{blocks,transactions,logs,token_transfers,traces,contracts}/date=YYYY-MM-DD/*.snappy.parquet`, region us-east-2. Read with `aws s3 --no-sign-request` or DuckDB `httpfs`. [Registry entry](https://registry.opendata.aws/aws-public-blockchain/), [registry YAML](https://github.com/awslabs/open-data-registry/blob/main/datasets/aws-public-blockchain.yaml), [AWS README](https://github.com/aws-samples/digital-assets-examples/blob/main/analytics/README.md).
-- **Freshness:** daily. I listed `traces/date=2026-11-19` written 2026-11-20T04:01Z, and the research pass saw `date=2026-11-23`. History starts at `date=2015-07-30`. [Bucket listing](https://aws-public-blockchain.s3.us-east-2.amazonaws.com/?list-type=2&prefix=v1.0/eth/traces/date=2026-11).
+- **Freshness:** daily. The newest partitions of traces, logs and transactions are `date=2026-11-23`, written 2026-11-24 between 03:45 and 04:01 UTC, so data lags by about one day. History starts at `date=2015-07-30`. [Bucket listing](https://aws-public-blockchain.s3.us-east-2.amazonaws.com/?list-type=2&prefix=v1.0/eth/traces/date=2026-11).
 - **Size, Nov 2025 to Oct 2026, summed from the bucket listing:**
 
   | Table | GB | GB per day |
@@ -99,7 +99,7 @@ Method: read vendor docs and pricing pages, listed the public AWS S3 bucket (obj
   | Infura | 1,380 credits | About $360 (Team, 2 months) | About 48 days at the 75M per day cap | [Pricing](https://www.infura.io/pricing), [credit costs](https://docs.infura.io/get-started/pricing/credit-cost/). No BSC. |
   | Chainstack | About 6 RU (unverified) | About $49 | Not estimated | [Pricing](https://chainstack.com/pricing/). Ethereum `trace_*` needs a dedicated Erigon archive node ([docs](https://docs.chainstack.com/docs/debug-and-trace-apis)). |
 
-- **BSC and Base:** BSC is about 42M blocks per year at 0.75 s since Maxwell ([BNB Chain](https://docs.bnbchain.org/announce/maxwell-bsc/)), 16 times Ethereum's call count. Base is about 15.8M blocks per year (6 times). Pull only the test windows.
+- **BSC and Base:** BSC is about 42M blocks per year at 0.75 s since its Maxwell hard fork ([BNB Chain](https://docs.bnbchain.org/announce/maxwell-bsc/)), 16 times Ethereum's call count. Base is about 15.8M blocks per year (6 times). Pull only the test windows.
 
 ### Self-hosted Erigon or Reth
 
@@ -123,8 +123,8 @@ Sources: Etherscan chart CSVs (`etherscan.io/chart/{tx,blocks,tokenerc-20txns}?o
 
 | Item | Per day | Per year | Notes |
 |---|---|---|---|
-| Blocks | About 7,170 | 2.61M | About 0.75% missed slots |
-| Transactions | 2.07M mean (1.12M to 3.63M) | 755M (Nov 25 to Oct 26) | 649M over May 25 to Apr 26. Gas limit went 45M to 60M around Fusaka on 2025-12-03 ([The Block](https://www.theblock.co/news/ecosystems/2026-01-02-ethereum-daily-transactions-all-time-high-384130)) |
+| Blocks | About 7,145 | 2.61M | About 0.75% of 7,200 daily slots missed |
+| Transactions | 2.07M mean (1.12M to 3.63M) | 755M (Nov 25 to Oct 26) | 649M over May 25 to Apr 26. Gas limit went 45M to 60M around the Fusaka upgrade on 2025-12-03 ([The Block](https://www.theblock.co/news/ecosystems/2026-01-02-ethereum-daily-transactions-all-time-high-384130)) |
 | Event logs | About 5.1M (6.1M in Apr 2026) | 1.86B (May to Apr), about 2.2B scaled to Nov to Oct | 2.87 logs per transaction |
 | Traces | About 12.6M | 4.61B (May to Apr), about 5.3B scaled | 99.5% `call`, 22.8M `create`. 7.1 per transaction |
 | ERC-20 transfers | 3.50M | 1.27B | About 1.7 per transaction |
@@ -184,10 +184,10 @@ A token belongs to the period that contains its first-liquidity time. Labels nee
 | Embargo | 2026-04-01 to 2026-04-30 |
 | Validation launches | 2026-05-01 to 2026-06-30 |
 | Validation period ends (T2) | 2026-06-30 |
-| Embargo | 2026-07-01 to 2026-07-31 |
-| Test launches | 2026-08-01 to 2026-09-30 (2 months, about 18K V2 and V3 pools plus V4) |
+| Embargo | 2026-07-01 to 2026-07-30 |
+| Test launches | 2026-07-31 to 2026-09-30 (2 months, about 18K V2 and V3 pools plus V4) |
 | Test labels observed until | 2026-10-30 (inside the window) |
-| Encoder B for the cutoff-leak test | Pretrained on the full window to 2026-10-31 |
+| Encoder B for the cutoff-leak test (PLAN.md Phase 5) | Pretrained on the full window to 2026-10-31 |
 
 Why these dates:
 
@@ -204,13 +204,21 @@ Why these dates:
 4. **Dry-run every query** and log the estimated bytes before running it.
 5. **Always filter on `block_timestamp`** with literal bounds, select named columns, and never use `SELECT *`. The managed dataset partitions monthly, so filter whole months. Remember that `LIMIT` does not reduce bytes scanned.
 6. **Alert, knowing alerts don't stop spend.** Budget alerts at $5, $20 and $50 notify only; the quotas above are what actually stop spend ([cost best practices](https://docs.cloud.google.com/bigquery/docs/best-practices-costs)).
-7. **Expected spend:** $0. The planned cross-check is daily `COUNT`s over about 12 months of transactions, logs and traces, under 1 TiB scanned.
+7. **Expected spend:** $0. The planned cross-check is daily `COUNT`s over about 12 months of transactions, logs and traces, which read only the timestamp and a few narrow columns and should stay under 1 TiB. Filtering logs by Transfer topic or sampling trace columns scans more, so dry-run each query and record its bytes before the first run.
+
+### Changes this makes to PLAN.md
+
+These are decisions, not just source choices, so they should be written into the plan if accepted.
+
+- **New source.** Phase 1 lists BigQuery, Paradigm and cryo as candidates. This report recommends AWS Public Blockchain Data, which is not on that list.
+- **Filtered, not raw, local copy.** Phase 1 says to extract one year of raw blocks, transactions, logs, traces and token transfers. On 280 GB we can keep only the filtered subset above: no full transaction `input`, about 5 to 8% of traces, and token transfers decoded from `logs` instead of the lossy AWS `token_transfers` table. The raw data stays re-readable from S3 at any time.
+- **Period assignment and new-entity scoring.** A token belongs to the period of its first liquidity, but it may be deployed earlier. A test token deployed before the cutoff (2026-06-30) has its deployment events in Encoder A's pretraining data. For Phase 5's "entities first seen after the pretraining cutoff", use the deployment block, not the first-liquidity time, so those tokens count as seen.
 
 ## Open questions for the user
 
 1. **Window.** Is one year (2025-11 to 2026-10) right, or do you want more train history, for example 15 months from 2025-08? More history costs about 5 GB per day raw and about 0.4 GB per day filtered locally.
 2. **Cross-check account.** May we create a BigQuery sandbox project for the cross-check? It needs a Google account and is free with no billing.
-3. **RPC provider.** Which provider for the archive RPC Phase 2 needs anyway, and are you willing to pay for one month (about $50 to $250)? Alchemy's terms ban scraping and data mining, so QuickNode or Chainstack may be safer for bulk cryo pulls.
+3. **RPC provider.** Which provider for the archive RPC Phase 2 needs anyway, and are you willing to pay for one month (about $50 to $360 depending on provider, per the cost table)? Alchemy's terms ban scraping and data mining, so QuickNode or Chainstack may be safer for bulk cryo pulls.
 4. **Data license.** Should we email aws-blockchain-data@amazon.com about republishing derived Parquet, or plan to publish only labels, addresses and code that regenerates the data?
 5. **BSC.** Is it acceptable to defer BSC extraction to Phase 7 and accept either Envio (needs a free token) or a paid BSC trace RPC for a two-month test window?
-6. **Plan text.** The plan's 20B event estimate looks too high for one year of Ethereum (estimate 1.5 to 2.5B after merging). Should the compute plan be redone after Phase 1 measures it, as the gate already says?
+6. **Plan text.** The plan's 20B event estimate looks too high for one year of Ethereum (estimate 1.5 to 2.3B after merging). Should the compute plan be redone after Phase 1 measures it, as the gate already says?
