@@ -2,20 +2,23 @@
 
 Checked 2026-11-24. Sources: arXiv pages, published abstracts, GitHub repo pages and the GitHub REST API, PyPI, Hugging Face, and provider terms pages. **No dataset was downloaded.** To confirm column names, the header rows of three small CSVs (SoK, Trapdoor ×2) were read with HTTP range requests under 1.5 KB.
 
-**Markers:** **V** means checked directly on the paper, repo or terms page. **U** means unverified; the source relied on is named.
+**Markers:** **V** means checked directly on the paper, repo or terms page. **U** means unverified; the source relied on is named. Unmarked facts come from the paper's abstract or dataset section.
+
+**Abbreviations:** EOA is an externally owned account (a key-controlled wallet, not a contract). LP is liquidity-provider tokens. FTM is Fantom. "*scan explorers" means Etherscan and its sister sites (BscScan, BaseScan, …). 4337 is the ERC-4337 smart-account standard.
 
 ## Summary
 
-- **Plan counts.** Only RPHunter's 645 is right as stated, and its data cannot be obtained.
-  - The public SoK release has **2,360** cases. The **2,391** figure is from the ISSTA 2025 version, which has no public release.
-  - TM-RugPull has 1,000 projects in v2/v3 but **1,028** in v1.
+- **Plan counts.** The SoK figure is wrong for the public release. The other two match if the right version is cited.
+  - SoK: the public release has **2,360** cases. The **2,391** figure is from the ISSTA 2025 version, which has no public release.
+  - RPHunter: 645 is correct, but its data cannot be obtained.
+  - TM-RugPull: 1,000 projects in v2/v3 matches the plan; v1 says **1,028**.
 - **No public manual label set has usable Base coverage**: TM-RugPull has 2 Base projects. BSC coverage is a few hundred projects.
 - **No public set gives launch, first-liquidity or rug timestamps.** Every horizon has to be rebuilt on-chain from the token or pool address.
-- **Etherscan's terms now ban using its data, even data obtained through third parties, for ML training or testing.** B4E phishing labels, XBlock, eth-labels and most exchange labels come from Etherscan. This blocks or clouds the phishing probe and the exchange probe.
+- **Etherscan's terms now ban using its data, even data obtained through third parties, for ML training or testing.** B4E phishing labels, XBlock, SPN, eth-labels and most exchange labels come from Etherscan. This blocks or clouds the phishing probe and the exchange probe.
 - **The "person" wallet class has no usable labels.** The only gold set is 133 humans and 137 bots (Niedermayer et al. 2024).
 - **Baselines.**
   - Xia et al. released no code; it has to be reimplemented from the paper's 40-feature table.
-  - CoLES runs on Python 3.12 from git main, but caps torch below 2.7.
+  - CoLES runs on Python 3.12 from git main, but caps torch below 2.7, so it does not run on current torch (2.15) without a patch.
   - Official BERT4ETH is TF1-style and breaks on Python 3.12. Its first author's PyTorch port is the practical route.
 - **Released weights.** One openly licensed Ethereum wallet-sequence foundation model has weights: **EWE-1-slim** (Apache-2.0, April 2026). It matters for the Phase 0 novelty gate.
 
@@ -27,7 +30,7 @@ Checked 2026-11-24. Sources: arXiv pages, published abstracts, GitHub repo pages
 
 | Plan says | Sources say | Verdict |
 |---|---|---|
-| SoK rug-pull incidents, **2,391 validated cases** | **2,391** appears only in the ISSTA 2025 abstract (DOI 10.1145/3728900). The public arXiv paper (2403.16082) and its GitHub CSV describe **2,360** instances. Those are mostly merged earlier sets, de-duplicated: Trapdoor 1,859, HoneyBadger 460 and Pied-Piper 189. Only **90** cases are new, from security-firm reports. **V** | **Mismatch.** "Validated rug-pull incidents" overstates it: most rows are honeypots or backdoors, not liquidity rugs. |
+| SoK rug-pull incidents, **2,391 validated cases** | **2,391** appears only in the ISSTA 2025 abstract (DOI 10.1145/3728900). The public arXiv paper (2403.16082) and its GitHub CSV describe **2,360** instances. Those are mostly merged earlier sets: Trapdoor 1,859, HoneyBadger 460 and Pied-Piper 189 (2,508 together), cut to 2,270 after de-duplication, plus **90** new cases from security-firm reports. The 238-row overlap is inferred from those totals; the paper does not itemize it. **V** | **Mismatch.** "Validated rug-pull incidents" overstates it: most rows are honeypots or backdoors, not liquidity rugs. |
 | RPHunter, **645 tokens** | 645 rug-pull tokens, manually labeled from 1,048 incidents before May 2024, plus 1,675 benign tokens from TokenScout. **V** | **Count matches.** The data link is an anonymous figshare review link that returns HTTP 403, and TM-RugPull says the data is not public. |
 | TM-RugPull, **1,000 projects** | arXiv v1 (Feb 2026) says **1,028**. v2 and v3 (May 2026) and the repo say **1,000**: 599 scam and 401 normal. **V** | **Matches v3.** Cite v3. |
 
@@ -38,11 +41,11 @@ Checked 2026-11-24. Sources: arXiv pages, published abstracts, GitHub repo pages
 - **Papers:**
   - arXiv: "SoK: Comprehensive Analysis of Rug Pull Causes, Datasets, and Detection Tools in DeFi", [arXiv:2403.16082](https://arxiv.org/abs/2403.16082), March 2024.
   - Published: "SoK: A Taxonomic Analysis of DeFi Rug Pulls", ISSTA 2025, [10.1145/3728900](https://doi.org/10.1145/3728900).
-- **Data:** [github.com/Dianxiang111/Rug-Pull-Dataset](https://github.com/Dianxiang111/Rug-Pull-Dataset). It holds `rugpull_dataset.csv` (10 MB), last pushed 2024-03-22, so it is the 2,360 arXiv version. The row count was not checked; at 10 MB the file may contain padding. **V**
+- **Data:** [github.com/Dianxiang111/Rug-Pull-Dataset](https://github.com/Dianxiang111/Rug-Pull-Dataset). It holds `rugpull_dataset.csv` (10 MB), last pushed 2024-03-22, so it is the 2,360 arXiv version. **V** The row count was not checked; at 10 MB the file may contain padding. **U**
 - **License:** none stated. **V**
 - **Size:** 2,360 in the public release; 2,391 in the ISSTA version, which has no release found.
 - **Chains:** Ethereum and BSC.
-- **Dates:** not stated. The literature search runs to 30 September 2023, and the HoneyBadger rows are from 2017–2019. **U**
+- **Dates:** not stated. The literature search runs to 30 September 2023, and the HoneyBadger rows are from 2017–2018. **U**
 - **Label definition:** a root-cause taxonomy with labels such as LP drain, hidden mint, sale restriction, blacklist, high fee and fake LP lock. Rows inherit their source set's labeling, so the set is mixed automated and manual.
 - **Columns:** `No., Chain, address, Losses, Type, Root Causes, Sources, URL`.
 - **Token addresses:** yes. **Timestamps:** no.
@@ -114,7 +117,7 @@ The first author is Lin, not Lu.
 - **Paper:** USENIX Security 2019, [arXiv:1902.06976](https://arxiv.org/abs/1902.06976).
 - **Data:** [github.com/christoftorres/HoneyBadger](https://github.com/christoftorres/HoneyBadger).
 - **License:** none stated.
-- **Size:** 282, 460 or 690 depending on the version and who counts. **U**
+- **Size:** 282 (arXiv) or 690 (published abstract); the SoK counts 460 after its own filtering. **U**
 - **Chains:** Ethereum.
 - **Dates:** 2017–2018.
 - **Label definition:** symbolic execution plus manual checks.
@@ -123,22 +126,25 @@ The first author is Lin, not Lu.
 
 #### Pied-Piper (Ma et al.)
 
-- **Paper:** TOSEM 2023, DOI 10.1145/3560264.
+- **Paper:** "Pied-Piper: Revealing the Backdoor Threats in Ethereum ERC Token Contracts", TOSEM 2023, DOI 10.1145/3560264.
+- **Data:** no standalone release found. The 189 appear inside the SoK CSV. **U**
+- **License:** none found.
 - **Size:** 189 developer-confirmed backdoor tokens among 13,484 contracts.
 - **Chains:** Ethereum.
-- **Data:** no standalone release; the 189 appear inside the SoK CSV. **U**
-- Backdoor does not mean rugged.
+- **Dates:** not stated in the sources read. **U**
+- **Label definition:** backdoor functions (for example, owner-only mint or transfer blocks) confirmed by developers. A backdoor does not mean the token was rugged.
+- **Token addresses:** yes, via the SoK CSV. **Timestamps:** no.
 
 #### Heuristic sets, not manual and mostly unreleased
 
-| Set | Size | Chains, dates | Label rule | Released? |
-|---|---|---|---|---|
-| Cernera et al., "Token Spammers, Rug Pulls, and Sniper Bots", USENIX Sec 2023, [arXiv:2206.08202](https://arxiv.org/abs/2206.08202) | 272,349 BSC and 21,742 ETH pools | ETH and BSC, to 2022-03-07 | One-day rug: a pool with exactly one Mint and one Burn, where the creator burns at least 99% of LP | No link found **U** |
-| Huynh et al., "Serial Scammers", WWW 2025, [arXiv:2412.10993](https://arxiv.org/abs/2412.10993) | 161,329 Uniswap and 470,712 PancakeSwap pools | ETH and BSC, to July 2024 | Same one-day rule | Code only ([repo](https://github.com/duyhuynhdev/serial-scammer-analyser)); no labels **V** |
-| Mazorra et al., "Do not rug on me", 2022, [arXiv:2201.07220](https://arxiv.org/abs/2201.07220) | 26,957 rug and 631 benign | ETH Uniswap V2, April 2020 to September 2021 | Inactive more than 30 days with about a 100% price or liquidity drop | Not found **U** |
-| Cernera et al., Telegram bait-and-trap honeypots, [arXiv:2610.10149](https://arxiv.org/abs/2610.10149) | 3,677 events | **BSC** and ETH, 2026 | Sell simulation | No link; a possible BSC honeypot source if requested |
-| TrapHunter, ISSTA 2026, [arXiv:2607.18753](https://arxiv.org/abs/2607.18753) | 269 trap tokens | Not stated | Manual | No link |
-| TokenScout, CCS 2024 | 214,084 ERC-20 tokens | ETH, 2015 to February 2023 | Scam vs benign | Repo not found **U** |
+| Set | Size | Chains, dates | Label rule | Released? | License | Addresses / timestamps |
+|---|---|---|---|---|---|---|
+| Cernera et al., "Token Spammers, Rug Pulls, and Sniper Bots", USENIX Sec 2023, [arXiv:2206.08202](https://arxiv.org/abs/2206.08202) | 272,349 BSC and 21,742 ETH pools | ETH and BSC, to 2022-03-07 | One-day rug: a pool with exactly one Mint and one Burn, where the creator burns at least 99% of LP | No link found **U** | n/a | n/a (not released) |
+| Huynh et al., "Serial Scammers", WWW 2025, [arXiv:2412.10993](https://arxiv.org/abs/2412.10993) | 161,329 Uniswap and 470,712 PancakeSwap pools | ETH and BSC, to July 2024 | Same one-day rule | Code only ([repo](https://github.com/duyhuynhdev/serial-scammer-analyser)); no labels **V** | n/a | n/a (not released) |
+| Mazorra et al., "Do not rug on me", 2022, [arXiv:2201.07220](https://arxiv.org/abs/2201.07220) | 26,957 rug and 631 benign | ETH Uniswap V2, April 2020 to September 2021 | Inactive more than 30 days with about a 100% price or liquidity drop | Not found **U** | n/a | n/a (not released) |
+| Cernera et al., Telegram bait-and-trap honeypots, [arXiv:2610.10149](https://arxiv.org/abs/2610.10149) | 3,677 events | **BSC** and ETH, 2026 | Sell simulation | No link; a possible BSC honeypot source if requested | n/a | n/a (not released) |
+| TrapHunter, ISSTA 2026, [arXiv:2607.18753](https://arxiv.org/abs/2607.18753) | 269 trap tokens | Not stated | Manual | No link | n/a | n/a (not released) |
+| TokenScout, CCS 2024 | 214,084 ERC-20 tokens | ETH, 2015 to February 2023 | Scam vs benign | Repo not found **U** | n/a | n/a (not released) |
 
 #### Unlabeled but useful
 
@@ -146,12 +152,12 @@ The first author is Lin, not Lu.
 - **Forta labelled-datasets** (MIT): malicious contracts and phishing addresses, but no rug-pull or honeypot token labels.
 - **Solana sets** (SolRPDS and others) are out of scope because Solana is not EVM.
 
-### 1.3 Summary table
+### 1.3 Label sets at a glance
 
 | Set | Public | License | Size | Chains | Manual | Token address | Timestamps |
 |---|---|---|---|---|---|---|---|
 | SoK (GitHub) | Yes | None | 2,360 (plan says 2,391) | ETH, BSC | Mixed | Yes | No |
-| RPHunter | No (403) | ? | 645 + 1,675 benign | ETH, BSC, Base, … | Yes | Probably | No |
+| RPHunter | No (403) | ? | 645 + 1,675 benign | ETH, BSC, Base, … | Yes | Probably | Not described |
 | TM-RugPull | Yes | None (GitHub) / CC BY-NC (HF) | 1,000 (599/401) | ETH 633, BSC 321, Base 2 | Yes | Via links | Start and end dates |
 | Xia et al. | No | n/a | 10,920 | ETH | Heuristic + ML | n/a | n/a |
 | CRPWarner | Yes | None | 93–103 events | ETH, BSC, FTM | Yes | Partly | No |
@@ -197,19 +203,34 @@ Every Etherscan-derived set below inherits this: B4E, XBlock, eth-labels, brianl
 
 #### ZipZap
 
-- WWW 2024, [git-disl/ZipZap](https://github.com/git-disl/ZipZap).
-- Data is a single Google Drive tarball with no license and no stated composition. **U**
+- **Paper:** Hu et al., "ZipZap: Efficient Training of Language Models for Large-Scale Fraud Detection on Blockchain", WWW 2024, DOI 10.1145/3589334.3645352.
+- **Data:** one Google Drive tarball linked from [git-disl/ZipZap](https://github.com/git-disl/ZipZap).
+- **License:** none stated.
+- **Size, dates, label definition:** not stated in the README. It is believed to be B4E plus a larger pretraining corpus. **U**
+- **Chains:** Ethereum.
+- **Addresses / timestamps:** presumably as B4E. **U**
 
 #### XBlock MulDiGraph
 
-- About 2.97M nodes, 13.55M edges and **1,165 phishers**, labeled from Etherscan.
-- The xblock.pro TLS certificate had expired, so the terms could not be read. Dates and license are **U**.
-- Smaller derived sets: TSGN (1,050 + 1,050) and TEGDetector (1,660 + 1,700).
+- **Papers:** Wu et al., "Who Are the Phishers?" (IEEE TSMC 2020) and Chen et al., "Phishing Scams Detection in Ethereum Transaction Network" (ACM TOIT 2020). **U**
+- **Data:** [xblock.pro](http://xblock.pro), "Ethereum Phishing Transaction Network". The TLS certificate had expired, so neither the page nor its terms could be read.
+- **License:** unknown; XBlock sets are usually academic-use, sometimes behind a request form. **U**
+- **Size:** about 2.97M nodes, 13.55M edges and **1,165 phishers** (from [arXiv:2409.07494](https://arxiv.org/abs/2409.07494) Table 1).
+- **Chains:** Ethereum.
+- **Dates:** about 2015–2019. **U**
+- **Label definition:** Etherscan "Phish/Hack" tags, with the graph built by a two-hop breadth-first search from known phishers.
+- **Addresses / timestamps:** yes; edges carry a timestamp and amount. **U**
+- Smaller derived sets: TSGN (1,050 phishers + 1,050 unlabeled) and TEGDetector (1,660 + 1,700).
 
 #### SPN
 
-- From [arXiv:2409.07494](https://arxiv.org/abs/2409.07494): 5,619 phishers and 491,121 normal accounts, up to 2024-06-07.
-- Built from the Etherscan API, so the ML clause applies directly.
+- **Paper:** "Ethereum Fraud Detection via Joint Transaction Language Model and Graph Representation Learning", [arXiv:2409.07494](https://arxiv.org/abs/2409.07494).
+- **Data:** no public link found. **U**
+- **License:** none found.
+- **Size:** 5,619 phishers and 491,121 normal accounts (496,740 nodes, 831,082 edges).
+- **Chains:** Ethereum. **Dates:** up to 2024-06-07.
+- **Label definition:** Etherscan phishing tags, with a two-hop crawl through the Etherscan API (first 100 transactions per node). The Etherscan API ML clause applies directly.
+- **Addresses / timestamps:** yes, per the paper's construction. **U**
 
 ### 2.3 Wallet types: exchange, bot, MEV searcher, person
 
@@ -246,7 +267,7 @@ The latest torch on PyPI is **2.15.0** (2026-10-28, wheels for Python 3.11–3.1
 | Baseline | Repo | License | Last commit / release | Python 3.12 + current torch? |
 |---|---|---|---|---|
 | **Xia et al. features + RF/XGBoost** | **None.** No code was released. | n/a | n/a | **Reimplement.** The paper's Appendix Table 4 lists 40 features. |
-| **CoLES (pytorch-lifestream)** | [pytorch-lifestream/pytorch-lifestream](https://github.com/pytorch-lifestream/pytorch-lifestream) (moved from dllllb) | LICENSE file is **Apache-2.0**; pyproject and PyPI say MIT. Follow the file. | Last commit 2026-11-14. PyPI 0.7.0 released 2025-12-17. | **Yes from git main, with torch 2.6.** See notes. |
+| **CoLES (pytorch-lifestream)** | [pytorch-lifestream/pytorch-lifestream](https://github.com/pytorch-lifestream/pytorch-lifestream) (moved from dllllb) | LICENSE file is **Apache-2.0**; pyproject and PyPI say MIT. Follow the file. | Last commit 2026-11-14. PyPI 0.7.0 released 2025-12-17. | **Not with current torch (2.15).** Python 3.12 is fine from git main (CI runs 3.10 and 3.13), but torch is capped below 2.7. It works with torch 2.6, or with the cap patched. Not run. |
 | **BERT4ETH (official)** | [git-disl/BERT4ETH](https://github.com/git-disl/BERT4ETH) | **None** (all rights reserved) | 2024-06-21 | **No.** TF1-style code. |
 | **BERT4ETH PyTorch port** | [Bayi-Hu/BERT4ETH_PyTorch](https://github.com/Bayi-Hu/BERT4ETH_PyTorch) (first author, linked from the official README) | **None** | 2025-09-18 | **Likely yes** with small patches; not run. |
 | ZipZap | [git-disl/ZipZap](https://github.com/git-disl/ZipZap) | None | 2024-02-14 | No. Same TF1-style code, and no PyTorch port. |
@@ -295,21 +316,23 @@ The paper's best model was a random forest with F1 96.6%, using features over ea
 
 ## 5. Proposed task list
 
-The plan's horizons are 5, 15 and 60 minutes after first liquidity; 500 transfers; and 24 hours. "Daily launches" means tokens whose first liquidity falls on that UTC day.
+The plan's horizons are 5, 15 and 60 minutes after first liquidity; 500 transfers; and 24 hours. "Daily launches" means tokens whose first liquidity falls on that UTC day. Task IDs are R (rug pull), H (honeypot), P (phishing) and W (wallet type); they are not the plan's T1/T2 period cut-offs.
+
+R2 is **not in the plan**. It is proposed as a secondary task with a published label rule and needs sign-off. The wallet probes (W1) use a fixed history window, not the token-launch horizons, because a wallet has no launch time.
 
 | # | Task | Input view | Label source | Horizon(s) | Metric | Expected class balance | Status |
 |---|---|---|---|---|---|---|---|
-| T1 | Rug pull | Token sequence from deployment, cut at the horizon | **Our on-chain labeler** (plan definition: linked wallets remove ≥80% of liquidity, or price falls ≥90%, within 30 days). Agreement checked against the SoK (2,360, ETH/BSC), TM-RugPull (1,000) and the Trapdoor non-malicious list as negatives. | All 5 | Precision at the top 1% of daily launches; PR-AUC | **Likely majority positive.** Xia et al. found 50% scam pools on Uniswap V2 in 2020. Mazorra's 30-day inactivity rule labels 98% of tokens. The 90%-price clause will catch most meme coins. Measure in Phase 2. | Labels usable (self-made). Manual sets are validation only and have no timestamps. |
-| T1-BSC, T1-Base | Rug pull, cross-chain | Token sequence | Same labeler run on BSC and Base logs. Base has **no manual validation set** (TM-RugPull has 2). The BSC check uses 321 TM-RugPull projects plus SoK BSC rows. | All 5 | Same | As T1 | **Base: no manual labels.** Only the self-made label exists. |
-| T2 | Honeypot | Token sequence, optionally plus contract sequence | **Our anvil sell simulator.** Validated against Trapdoor (1,859 manual, ETH, 2020–2023, token and pool addresses). | All 5. The label is fixed after the observation time. | PR-AUC; precision at the top 1% | **Unknown; measure.** Trapdoor's large set is 39% trapdoor, but that set is pre-filtered. On all launches, likely 5–30%. **U** | Usable (self-made). The manual check covers ETH Uniswap V2 only. BSC labels could come from Cernera et al. 2026 if they share. |
-| T3 | One-day rug (secondary) | Token sequence | The Cernera and Huynh rule: a pool with one Mint and one Burn, where the creator burns ≥99% of LP. Reproducible on every chain from logs. | 5 and 15 minutes (the rug happens within a day) | PR-AUC | Very common on BSC (Cernera found 272k BSC pools to March 2022) | Usable. It gives a published-definition task for comparison. |
-| T4 | Phishing on B4E | Wallet sequence (up to 100 transactions per chunk, as in BERT4ETH) | B4E: 3,220 phishing vs 594,038 normal | Whole history to 2022-05-01; account-level split | F1 and PR-AUC, matching BERT4ETH | **0.54% positive** | **License-blocked** under the Etherscan ML clause. Technically available. |
-| T5a | Wallet type: exchange | Wallet sequence | Dune `cex.addresses` or eth-labels, or a re-derived list from proof-of-reserves disclosures | Fixed window, such as 30 days of history | Macro-F1 and per-class PR-AUC (with T5b–d) | Rare: thousands of addresses among millions of EOAs | Restricted (Etherscan or Dune terms). A clean source needs work. |
-| T5b | Wallet type: MEV searcher | Wallet sequence (EOA) and contract sequence (searcher contract) | Self-generated with mev-inspect-py (MIT) on our traces, plus the searcherbuilder heuristics | As T5a | As T5a | Rare: hundreds of active searchers | Usable once Phase 1 has traces |
-| T5c | Wallet type: bot (non-MEV) | Wallet sequence | Niedermayer et al.: 137 bots | As T5a | As T5a | About 50/50 in the gold set | **Too small to train on**; evaluation only |
-| T5d | Wallet type: person | Wallet sequence | **No usable labels.** Only a weak label is possible (2.3), with 133 gold humans for evaluation. | As T5a | As T5a | Unknown | **No usable labels.** Either drop it, or report it as weak-label only. |
+| R1 | Rug pull | Token sequence from deployment, cut at the horizon | **Our on-chain labeler** (plan definition: "Linked wallets remove 80% or more of pool liquidity, or price falls 90% or more, within 30 days"). Agreement checked against the SoK liquidity-rug rows (ETH/BSC) and TM-RugPull (599 rug pulls, 401 normal as negatives). | All 5 | Precision at the top 1% of daily launches; PR-AUC | **Likely majority positive.** Xia et al. labeled 50% of Uniswap V2 tokens (45% of pools) as scams in 2020. Mazorra's 30-day inactivity rule labels 98% of tokens. The 90%-price clause will catch most meme coins. Measure in Phase 2. | Labels usable (self-made). Manual sets are validation only and have no timestamps. |
+| R1-BSC, R1-Base | Rug pull, cross-chain | Token sequence | Same labeler run on BSC and Base logs. Base has **no manual validation set** (TM-RugPull has 2). The BSC check uses 321 TM-RugPull projects plus SoK BSC rows. | All 5 | Same | As R1 | **Base: no manual labels.** Only the self-made label exists. |
+| H1 | Honeypot | Token sequence, optionally plus contract sequence | **Our anvil sell simulator.** Validated against Trapdoor (1,859 manual, ETH, 2020–2023, token and pool addresses). | All 5. The label is fixed after the observation time. | PR-AUC; precision at the top 1% | **Unknown; measure.** Trapdoor's large set is 39% trapdoor, but that set is pre-filtered. On all launches, likely 5–30%. **U** | Usable (self-made). The manual check covers ETH Uniswap V2 only. BSC labels could come from Cernera et al. 2026 if they share. |
+| R2 | One-day rug (secondary) | Token sequence | The Cernera and Huynh rule: a pool with one Mint and one Burn, where the creator burns ≥99% of LP. Reproducible on every chain from logs. | 5, 15 and 60 minutes. 500 transfers and 24 hours are dropped because most one-day rugs finish before either. | PR-AUC | High: Cernera et al. flag 272k BSC and 21.7k ETH pools to March 2022. As a share of all launches it is not reported; measure it. **U** | Usable. It gives a published-definition task for comparison. |
+| P1 | Phishing on B4E | Wallet sequence (up to 100 transactions per chunk, as in BERT4ETH) | B4E: 3,220 phishing vs 594,038 normal | Whole history to 2022-05-01; account-level split | F1 and PR-AUC, matching BERT4ETH | **0.54% positive** | **License-blocked** under the Etherscan ML clause. Technically available. |
+| W1a | Wallet type: exchange | Wallet sequence | Dune `cex.addresses` or eth-labels, or a re-derived list from proof-of-reserves disclosures | Fixed window, such as 30 days of history | Macro-F1 and per-class PR-AUC (shared with W1b–W1d) | Rare: thousands of addresses among millions of EOAs | Restricted (Etherscan or Dune terms). A clean source needs work. |
+| W1b | Wallet type: MEV searcher | Wallet sequence (EOA) and contract sequence (searcher contract) | Self-generated with mev-inspect-py (MIT) on our traces, plus the searcherbuilder heuristics | As W1a | As W1a | Rare: hundreds of active searchers | Usable once Phase 1 has traces |
+| W1c | Wallet type: bot (non-MEV) | Wallet sequence | Niedermayer et al.: 137 bots | As W1a | As W1a | About 50/50 in the gold set | **Too small to train on**; evaluation only |
+| W1d | Wallet type: person | Wallet sequence | **No usable labels.** Only a weak label is possible (2.3), with 133 gold humans for evaluation. | As W1a | As W1a | Unknown | **No usable labels.** Either drop it, or report it as weak-label only. |
 
-**Splits for every task:** a time split (T1 / T2 with a 30-day embargo, from the fixed-decisions table), plus a deployer split for T1–T3. Score tokens and wallets first seen after the pretraining cutoff on their own, as the plan requires.
+**Splits for every task:** a time split at the plan's train end (T1) and validation end (T2), with the 30-day embargo, plus a deployer split for R1, R2 and H1. Score tokens and wallets first seen after the pretraining cutoff on their own, as the plan requires.
 
 ---
 
