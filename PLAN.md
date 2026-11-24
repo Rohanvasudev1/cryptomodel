@@ -72,7 +72,8 @@ Decisions made on 2026-11-24 after the Phase 0 reports:
 
 - **Dates.** The table above uses the dates proposed in [data_sources.md](reports/phase0/data_sources.md#fixed-decisions-proposed). Reason: every test label is observable inside the window, which ends three weeks before the decision date so late AWS partitions have landed; train has five months of launches; and the Fusaka gas-limit change (2025-12-03) falls inside train.
 - **Two rug-pull labels.** A strict headline label (liquidity removal or deployer dump) and the broad original label (adds a 90% price fall) as a secondary task. Reason: a price fall alone also catches failed but honest launches, and the manual sets check liquidity rugs. See [tasks_and_datasets.md](reports/phase0/tasks_and_datasets.md#5-proposed-task-list).
-- **Phishing on B4E is pending Etherscan's permission.** Reason: Etherscan's terms ban ML use of its data, including data obtained through third parties, and B4E's labels come from Etherscan ([tasks_and_datasets.md](reports/phase0/tasks_and_datasets.md#21-etherscan-terms-read-this-first)). The user asks Etherscan (draft in [docs/drafts/etherscan_ml_permission_email.md](docs/drafts/etherscan_ml_permission_email.md)). If Etherscan refuses or does not answer, drop the phishing task. BERT4ETH stays as an embedding baseline on our own tasks either way. Exchange labels are rebuilt from non-Etherscan sources, such as proof-of-reserves disclosures.
+- **Phishing on B4E is pending Etherscan's permission.** Reason: Etherscan's terms ban ML use of its data, including data obtained through third parties, and B4E's labels come from Etherscan ([tasks_and_datasets.md](reports/phase0/tasks_and_datasets.md#21-etherscan-terms-read-this-first)). The user asks Etherscan (draft in [docs/drafts/etherscan_ml_permission_email.md](docs/drafts/etherscan_ml_permission_email.md)). If Etherscan refuses or does not answer, drop the phishing task. BERT4ETH stays as an embedding baseline on our own tasks either way.
+- **Exchange labels come from non-Etherscan sources**, such as exchanges' proof-of-reserves disclosures. Reason: the same Etherscan terms cover eth-labels and most public exchange lists ([tasks_and_datasets.md](reports/phase0/tasks_and_datasets.md#23-wallet-types-exchange-bot-mev-searcher-person)).
 - **The "person" wallet probe is dropped.** Reason: no usable labels exist; the only gold set is 133 humans and 137 bots ([tasks_and_datasets.md](reports/phase0/tasks_and_datasets.md#23-wallet-types-exchange-bot-mev-searcher-person)). The wallet probes are exchange, MEV searcher and bot.
 - **Primary source is AWS Public Blockchain Data** (`s3://aws-public-blockchain/v1.0/eth/`), with BigQuery as a cross-check only. Reason: AWS is free, needs no account, is already Parquet, has all five tables including traces and is updated daily. BigQuery egress would cost about $200 or more for a year, so it only runs aggregate count checks in the free sandbox. See [data_sources.md](reports/phase0/data_sources.md#summary).
 
@@ -102,7 +103,7 @@ Expected time: 2 to 4 weeks.
 
 - [x] Choose the data source: AWS Public Blockchain Data (`s3://aws-public-blockchain/v1.0/eth/`). BigQuery is a cross-check in the free sandbox only. cryo with a paid RPC fills gaps. Paradigm's portal ends in 2023 and is not usable. See `reports/phase0/data_sources.md`.
 - [ ] Stream the AWS daily partitions for the extraction window. Keep only the needed columns and rows, and write a filtered local copy of about 115 to 180 GB of zstd Parquet, as sized in `reports/phase0/data_sources.md`. The raw data stays re-readable from S3.
-  - Decode token amounts from `logs`. The AWS `token_transfers.value` and `traces.value` columns are lossy doubles; use `token_transfers` only as a cross-check.
+  - Decode token amounts from `logs`. The AWS `token_transfers.value` and `traces.value` columns are lossy doubles. Use `token_transfers` only as a cross-check.
 - [ ] Cross-check daily counts of transactions, logs, Transfer events and creates against BigQuery.
 - [ ] Decode events for Uniswap V2 and V3 and their forks:
   - [ ] Pool creation
@@ -119,7 +120,7 @@ Expected time: 2 to 4 weeks.
 - [ ] Store every derived table with its snapshot date.
 - [ ] Count total events after merging consecutive repeats.
 
-Gate: the event count is known. Replace the estimate of about 1.5 to 2.3 billion events after merging (Phase 0 estimate; Phase 1 measures it) in the compute plan with the real number.
+Gate: the event count is known. The compute plan uses about 1.5 to 2.3 billion events after merging (Phase 0 estimate; Phase 1 measures it). Replace it with the real number.
 
 ## Phase 2: labels and baselines
 
@@ -246,7 +247,7 @@ Still undecided after Phase 0. Move each item to the decision log once it is set
 - **BSC extraction is deferred to Phase 7.** AWS has no BSC logs or traces. Choose then between Envio HyperSync (needs a free token) and cryo against a paid BSC trace RPC, for the test window only.
 - **Etherscan's answer.** The phishing task waits on it (see the decision log).
 - **Novelty gate.** The pass is provisional until DeFiTrust and Hunting in the Dark Forest are read.
-- **One-day rug task (R2).** `reports/phase0/tasks_and_datasets.md` proposes the Cernera and Huynh one-day rug rule as an extra secondary task. It is not yet accepted.
+- **One-day rug task.** `reports/phase0/tasks_and_datasets.md` (task R2) proposes an extra secondary task: the Cernera and Huynh rule, a pool with one mint and one burn where the creator burns 99% or more of the LP tokens. It is not yet accepted.
 
 ## Risks to check early
 
