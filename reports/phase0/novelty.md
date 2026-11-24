@@ -246,7 +246,7 @@ The pass was provisional because two neighbours had not been read. Both are now 
 
 Cite both in related work: Dark Forest for the pretrained-then-few-shot design, DeFiTrust as the nearest token-level baseline.
 
-This report covers only the novelty gate. The other Phase 0 items (downstream task list, fixed decisions table) are still open.
+This report covers only the novelty gate. The other Phase 0 items are complete: the downstream task list is in `reports/phase0/tasks_and_datasets.md`, and the fixed decisions table and decision log are filled in `PLAN.md`.
 
 Watch TokenScout's authors and the Solana early-detection groups (Bahrak; Yanovich and Vodolazov). A pretrained successor from either would close the gap. Re-run this search before submission.
 
