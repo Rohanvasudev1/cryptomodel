@@ -95,7 +95,7 @@ Expected time: 1 week.
 
 Gate: no published paper already does contribution 1. If one does, rewrite the goal before writing code.
 
-Gate status: passes. The two close papers that kept it provisional were checked, and neither pretrains on token-launch sequences. Hunting in the Dark Forest (WWW 2025) pretrains per transaction. DeFiTrust (2024) is a token-level classifier trained with labels only. See `reports/phase0/novelty.md`.
+Gate status: passes. The two close papers that kept it provisional were checked, and neither pretrains on token-launch sequences. Hunting in the Dark Forest (WWW 2025) pretrains per transaction. DeFiTrust (2024) is a token-level classifier trained with labels only, per its released code (its full text is paywalled). See `reports/phase0/novelty.md`.
 
 ## Phase 1: data platform
 
