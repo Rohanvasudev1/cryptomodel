@@ -84,7 +84,9 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p.add_argument("--start", type=dt.date.fromisoformat, required=True)
     p.add_argument("--end", type=dt.date.fromisoformat, required=True, help="inclusive")
     p.add_argument("--tables", nargs="+", choices=TABLES, default=list(DEFAULT_ORDER))
-    p.add_argument("--workers", type=int, default=2)
+    p.add_argument(
+        "--workers", type=int, default=5, help="(table, day) tasks run at once; 5 = one day"
+    )
     p.add_argument("--duckdb-threads", type=int, default=2)
     p.add_argument("--duckdb-memory", default="1GB")
     p.add_argument(
