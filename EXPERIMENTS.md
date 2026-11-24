@@ -2,7 +2,7 @@
 
 Add one entry per run, newest first. Record failed runs too. The ablation tables in the paper come from this file.
 
-**Rule.** Every session that runs anything (a trial, labeling, training or evaluation) adds an entry here in the same PR, and the manager rejects a PR that runs something without one. Fill in the hypothesis and pass threshold before looking at the results, copying them from the phase gate in `PLAN.md` where one applies; a threshold changes only through a dated decision-log entry in `PLAN.md`. Each result names its baseline, its split and its seeds (at least 5 for a model comparison), with the label base rate next to every precision figure. Negative and inconclusive results are logged the same way. See "How we run experiments" in `PLAN.md`.
+**Rule.** Every session that runs anything (a trial, labeling, training or evaluation) adds an entry here in the same PR; the manager rejects a PR that runs something without one. Write the hypothesis and pass threshold before looking at the results, copying them from the phase gate where one applies. The full rules are in "How we run experiments" in `PLAN.md`.
 
 ## Template
 

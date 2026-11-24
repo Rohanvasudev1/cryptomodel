@@ -32,11 +32,17 @@ The project is experiment-led. These rules apply to every phase and every sessio
 - **Pre-register each gate.** Before a phase's work starts, its gate states a hypothesis, a metric, a pass threshold, and the action on pass and on fail. Each gate below uses that form.
 - **Thresholds change only through the decision log.** A change needs a dated entry in the decision log, written before the results it affects are seen. A threshold marked "proposed" is in force until such an entry changes it.
 - **Log every run.** Every session that runs anything (a trial, labeling, training or evaluation) adds an entry to `EXPERIMENTS.md` in the same PR. Failed runs count. The manager rejects a PR that runs something without logging it.
-- **State the comparison.** Every result names its baseline, its split (the time split in the fixed decisions unless stated otherwise) and its seeds (at least 5 for any model comparison). Every precision figure has the label's base rate next to it.
+- **State the comparison.** Every result names its baseline, its split (the train, validation and test periods in the fixed decisions unless stated otherwise) and its seeds (at least 5, per the fixed decisions). Every metric, and every precision figure in particular, has the label's base rate next to it.
 - **Kill ideas cheaply.** Run the cheapest experiment that can kill an idea before building the expensive one. Phase 1.5 is the first example.
 - **Report negative results.** A failed gate or a null result goes in `EXPERIMENTS.md` and, where it bears on a contribution, in the paper.
 
-"Significant" below means a one-sided paired t-test over the 5 seeds at p < 0.05, with a token-level bootstrap 95% interval reported next to it.
+Terms used in the gates:
+
+- **Significant:** a one-sided paired t-test over the 5 seeds at p < 0.05, with a bootstrap 95% interval reported next to it, resampled by deployer so one deployer's tokens move together. When one gate tests several comparisons at once (such as the Phase 4 objective ablations), apply a Holm correction across them.
+- **Seed SD:** the standard deviation of a model's PR-AUC across its 5 seeds, measured in the phase the gate names.
+- **Finding:** a gate part marked as a finding is measured and reported either way; it does not block the next phase.
+
+The thresholds are proposed round numbers. No published tool reports agreement on these manual sets or effect sizes on these tasks, so the first measurements may show some are too loose or too strict; change them only through the decision log, before the results they affect.
 
 ## Where each phase runs
 
@@ -147,7 +153,7 @@ Gate (thresholds proposed, set 2026-11-24):
 
 - **Hypothesis:** the filtered local copy is complete and correct for the extraction window, and the merged event count is close enough to the Phase 0 estimate of 1.5 to 2.3 billion that the compute plan holds.
 - **Metric:** (a) days in the window with no local data; (b) per-day difference against BigQuery in counts of transactions, logs, Transfer events and creates; (c) total events after merging.
-- **Pass threshold:** (a) zero missing days after gap-filling; (b) every day within 0.1% of BigQuery on every count; (c) any value, recorded, and between 0.75 and 4.6 billion (half the low estimate to twice the high one).
+- **Pass threshold:** (a) zero missing days after gap-filling; (b) every day within 0.1% of BigQuery on every count; (c) between 0.75 and 4.6 billion (half the low estimate to twice the high one); the measured value is recorded either way.
 - **Pass action:** replace the estimate in the compute plan with the measured count and start Phase 2 (once Phase 1.5 has also passed).
 - **Fail action:** for (a) or (b), fill or re-extract the failing days with cryo and re-check; do not label or train on days that still fail. For (c) outside the band, redo the compute plan for Phases 4 and 6 before Phase 3, and record the change in the decision log.
 
@@ -163,26 +169,26 @@ The cheapest experiment that can kill the project's early-detection claim. It ru
   - [ ] Broad rug label
 - [ ] At each horizon, drop tokens already rugged before the horizon, and count them separately.
 - [ ] Measure each label's base rate, overall and at each horizon after the drop.
-- [ ] Build simple hand-built features at each horizon (5, 15 and 60 minutes, 500 transfers, 24 hours), computed only from events before the horizon. For example: swap, buyer and seller counts; buy and sell volume; liquidity added; time from deployment to first liquidity; deployer age, balance and prior launches; deployer and top-10 holder shares; whether LP tokens were burned or sent to a lock contract.
-- [ ] Time split within the month: train on launches from days 1 to 16, purge days 17 to 23 (so train labels end before test launches start), test on launches from day 24 to the month's end.
+- [ ] Build simple hand-built features at each horizon (5, 15 and 60 minutes, 500 transfers, 24 hours), computed only from events before the horizon. For example: swap, buyer and seller counts; buy and sell volume; liquidity added; time from deployment to first liquidity; deployer age, balance and prior launches; deployer and top-10 holder shares; whether LP tokens were burned or sent to a lock contract. Deployer history before 2025-11-01 is not in the local copy, so deployer features are truncated in the first month; read them from S3 for this check, or note the truncation in the log.
+- [ ] Time split within the month: train on launches from days 1 to 16, purge days 17 to 23 (the purge matches the 7-day label window, so train labels end before test launches start; the full benchmark keeps the 30-day embargo), test on launches from day 24 to the month's end.
 - [ ] Train LightGBM with 5 seeds for each label and horizon.
 - [ ] Record PR-AUC and precision at the top 1% of daily launches against the base rate, with bootstrap 95% intervals, in `EXPERIMENTS.md`.
 
 Gate (thresholds proposed, set 2026-11-24):
 
 - **Hypothesis:** (a) hand-built features carry usable signal for the strict label at 15 minutes; (b) the strict label is neither nearly all positive nor too rare to learn.
-- **Metric:** on the test days, for the strict label at 15 minutes: PR-AUC, precision at the top 1% of daily launches, and the strict label's base rate *b* among launches in the month (before the horizon drop).
+- **Metric:** on the test days, for the strict label at 15 minutes: PR-AUC, precision at the top 1% of daily launches, and the base rate *b* of the same test tokens (after the horizon drop). For (b): the strict label's 7-day base rate *b*₀ among all launches in the month (before the horizon drop).
 - **Pass threshold:**
   - (a) mean PR-AUC at least 1.5 × *b*, with the bootstrap lower bound above *b*; and mean precision at the top 1% at least min(2*b*, *b* + (1 − *b*)/2). For example, *b* = 10% needs PR-AUC ≥ 0.15 and precision ≥ 20%; *b* = 40% needs PR-AUC ≥ 0.60 and precision ≥ 70%.
-  - (b) *b* between 5% and 50%. Xia et al. labeled about 50% of 2020 Uniswap V2 tokens as scams with a broad definition, so the strict label should fall below that.
+  - (b) *b*₀ between 5% and 50%. Xia et al. labeled about 50% of 2020 Uniswap V2 tokens as scams with a broad definition, so the strict label should fall below that; below 5%, a week of launches holds too few positives to learn from. The 7-day rate is a lower bound on the 30-day rate, so a value near 50% already warns that Phase 2's 30-day label may leave the band.
   - Inconclusive if the test days have fewer than 100 strict positives at 15 minutes: add the next month and rerun before deciding.
-- **Pass action:** continue to Phase 2, with all five horizons. Apply the same test to every other horizon and record the results; if 5 minutes alone fails, keep it as a secondary horizon and say so in the paper.
+- **Pass action:** continue to Phase 2 once the Phase 1 gate has also passed, with all five horizons. Apply the same test to every other horizon and record the results; if 5 minutes alone fails, keep it as a secondary horizon and say so in the paper.
 - **Fail action:**
   - (b) fails: revise the strict label (above 50%: tighten the liquidity-removal share or the linked-wallet rule; below 5%: check the linking heuristic for misses), log the revision in the decision log, and rerun this check.
-  - (a) fails but the same test passes at 60 minutes: drop 5 and 15 minutes from the headline, record the change in the decision log, and continue.
-  - (a) fails at 60 minutes too, with (b) passing: stop before Phase 3. Inspect the labels against a sample of tokens by hand, revise them or the features, and rerun. If a second run also fails, write up the no-signal result and decide in the decision log whether to continue with the benchmark and leak contributions only.
+  - (a) fails but the same test passes at 60 minutes: drop 5 and 15 minutes from the headline (5 minutes is also tested and recorded, for the paper), record the change in the decision log, and continue.
+  - (a) fails at 60 minutes too, with (b) passing: do not start Phase 2. Inspect the labels against a sample of tokens by hand, revise them or the features, and rerun. If a second run also fails, write up the no-signal result and decide in the decision log whether to continue with the benchmark and leak contributions only.
 
-Also record the broad label's base rate. If it is above 80%, the broad label is near-trivial for precision at the top 1%; propose dropping or tightening it in the decision log before Phase 2.
+Also record the broad label's 7-day base rate (a finding). If it is above 80%, the broad label is near-trivial for precision at the top 1%; propose dropping or tightening it in the decision log before Phase 2.
 
 ## Phase 2: labels and baselines
 
@@ -207,19 +213,20 @@ Gate (thresholds proposed, set 2026-11-24):
 
 - **Hypothesis:** (a) the strict rug label matches manual rug-pull labels; (b) the honeypot simulator matches manual honeypot labels; (c) baselines score higher under a random split than under the time split, so the leakage-free benchmark matters.
 - **Metric:**
-  - (a) strict-label F1 on the Ethereum rows of TM-RugPull (599 rug pulls, 401 normal across all chains; 633 projects on Ethereum), with recall on its rug pulls and the false-positive rate on its normals; recall on the SoK rows typed as liquidity rugs.
-  - (b) honeypot recall on Trapdoor's 1,859 manual trapdoor tokens, and the false-positive rate on its non-malicious list.
+  - (a) strict-label F1 on the Ethereum rows of TM-RugPull (599 rug pulls, 401 normal across all chains; 633 projects on Ethereum, whose class split is recorded first), with recall on its rug pulls and the false-positive rate on its normals; recall on the SoK rows typed as liquidity rugs.
+  - (b) honeypot recall on Trapdoor's 1,859 manual trapdoor tokens, the false-positive rate on its non-malicious list, and F1 (recorded).
   - (c) for each baseline, random-split PR-AUC minus time-split PR-AUC on the strict label at 15 minutes, over 5 seeds.
   - The strict label's base rate on the full train period, with the 30-day window.
 - **Pass threshold:**
   - (a) F1 ≥ 0.80, with the false-positive rate on TM-RugPull normals ≤ 5% (those normals are audited, well-known projects, so they should be easy); SoK liquidity-rug recall ≥ 0.70.
   - (b) recall ≥ 0.85 and false-positive rate ≤ 5%.
   - The strict base rate stays between 5% and 50%, the Phase 1.5 band.
-  - (c) is not pass or fail; it is a finding. A gap of at least 0.05 PR-AUC that is significant counts as large.
+  - (c) is a finding. A gap of at least 0.05 PR-AUC that is significant counts as large.
+  - The manual sets are easier than live launches (TM-RugPull's normals are well-known projects), so passing agreement is necessary, not sufficient; report it as an upper bound on label quality.
 - **Pass action:** freeze the labelers, record the label version in `EXPERIMENTS.md`, and start Phase 3. If (c) is large, the benchmark alone is a publishable result; note it in the paper outline.
 - **Fail action:** for (a) or (b), inspect the disagreeing tokens, revise the labeler, log the revision in the decision log, and rerun. After two failed revisions, demote the failing label to a secondary task, report its agreement as a limitation, and decide the headline label in the decision log before Phase 3.
 
-Also record, as the baseline numbers later phases must beat: the LightGBM hand-built-feature model from Phase 1.5, retrained on the full train period, and the seed standard deviation of each baseline's PR-AUC. Phase 4 and Phase 5 thresholds use that standard deviation.
+Also record, as the baseline numbers later phases must beat: the LightGBM hand-built-feature model from Phase 1.5, retrained on the full train period, and each baseline's seed SD. The Phase 4 threshold uses the CoLES GRU's seed SD.
 
 ## Phase 3: tokenizer study
 
@@ -264,12 +271,12 @@ Expected time: 2 to 4 weeks.
 Gate (thresholds proposed, set 2026-11-24):
 
 - **Hypothesis:** the S model's pretrained embeddings carry more rug-pull signal than the CoLES GRU's.
-- **Metric:** frozen linear-probe PR-AUC on the strict rug label at 15 minutes, on the validation period, 5 probe seeds each. Also recorded: the same at every other horizon and for honeypots, and the gap to the Phase 2 LightGBM baseline.
-- **Pass threshold:** the S model's mean PR-AUC beats the CoLES GRU's by at least max(0.02, 2 × the CoLES GRU's seed standard deviation from Phase 2), and the difference is significant. Each objective in the ablation stays only if it adds at least 0.01 PR-AUC, significantly; otherwise drop it for simplicity.
+- **Metric:** frozen linear-probe PR-AUC on the strict rug label at 15 minutes, on the validation period, 5 probe seeds each. Probe seeds miss pretraining variance, so the S model is pretrained twice with different seeds and each run is probed. Also recorded: the same at every other horizon and for honeypots, and the gap to the Phase 2 LightGBM baseline.
+- **Pass threshold:** for both S pretraining runs, mean PR-AUC beats the CoLES GRU's by at least the Phase 4 margin, max(0.02, 2 × the CoLES GRU's seed SD from Phase 2), and the difference is significant. Each objective in the ablation stays only if it adds at least 0.01 PR-AUC, significantly after the Holm correction; otherwise drop it for simplicity. The difference between the two S runs' mean PR-AUC is recorded as the S pretraining spread, which Phase 6 uses.
 - **Pass action:** keep the best objective set and start Phase 5.
 - **Fail action:** do not scale. Fix the data or the objectives and rerun, logging each round. After two failed rounds, write up the negative result, and decide in the decision log whether to continue with contributions 2 and 3 only.
 
-The gap to LightGBM is not a gate here, since Relvas and Bernardo (2611.18914) and MELT find frozen sequence embeddings rarely beat it. It is the bar for Phase 7.
+The gap to LightGBM is not a gate here, since Relvas and Bernardo (2611.18914) and MELT (2602.13480) find frozen sequence embeddings rarely beat it. It is the bar for Phase 7.
 
 ## Phase 5: evaluation protocol
 
@@ -295,7 +302,7 @@ Gate (thresholds proposed, set 2026-11-24):
 - **Pass threshold:**
   - (a) the difference meets the Phase 4 margin and is significant.
   - (b) the difference is positive, at least half of its size in (a), and significant.
-  - (c) is a finding, not pass or fail. Leakage is **material** if B beats A by at least max(0.01, 2 × Encoder A's seed standard deviation) in PR-AUC, significantly, or by at least 2 percentage points of precision at the top 1%.
+  - (c) is a finding. Leakage is **material** if B beats A in PR-AUC by at least the leak margin, max(0.01, 2 × Encoder A's seed SD from this phase), and the difference is significant. The precision-at-1% difference is reported next to it with the base rate, not gated.
 - **Pass action:** start Phase 6.
 - **Fail action:** if (a) fails, the Phase 4 result was a validation-period effect; report it, and revisit Phase 4 before scaling. If only (b) fails, scale anyway but report that the gain does not reach new deployers; Phase 7's new-deployer test then becomes the main question.
 - **Either outcome of (c)** is reported for contribution 3: material leakage supports the cutoff rule as a headline finding; no material leakage is reported as a negative result, and the rule is kept as cheap insurance.
@@ -314,9 +321,9 @@ Gate (thresholds proposed, set 2026-11-24):
 
 - **Hypothesis:** downstream performance still improves with model size or data size at the largest point trained.
 - **Metric:** frozen-probe PR-AUC on the strict rug label at 15 minutes, validation period, 5 probe seeds per pretrained model (one pretraining run per size, for cost). Pretraining loss is plotted but not gated.
-- **Pass threshold:** "the curves still rise" means the last step on at least one axis (L over M for model size, or the largest data size over the next for data size) gains at least the Phase 5 materiality margin, max(0.01, 2 × seed standard deviation), significantly. The S model's pretraining-seed variance is unknown; before the M run, pretrain S a second time with a new seed, and if its PR-AUC moves by more than the margin, raise the margin to that difference by a decision-log entry.
+- **Pass threshold:** "the curves still rise" means the last step on at least one axis (L over M for model size, or the largest data size over the next for data size) gains at least the scaling margin, significantly. The scaling margin is max(0.01, 2 × the larger model's seed SD from this phase, the S pretraining spread from Phase 4), so it covers pretraining noise as well as probe noise. It is fixed by this rule now and needs no later decision.
 - **Pass action:** use the largest model in Phase 7, and note in the paper that scaling has not saturated.
-- **Fail action:** report the flat curves as a finding, do not train larger models, and use the smallest model within the margin of the best in Phase 7.
+- **Fail action:** report the flat curves as a finding, do not train larger models, and use the smallest model within the scaling margin of the best in Phase 7.
 
 ## Phase 7: multimodal detector
 
@@ -340,20 +347,21 @@ Expected time: 3 to 4 weeks.
 Gate (thresholds proposed, set 2026-11-24):
 
 - **Hypothesis:** pretraining helps the detector most at the earliest horizons and for new deployers, and the detector beats the LightGBM baseline.
-- **Metric:** on the test period with the deployer split, strict rug label, 5 seeds:
+- **Metric:** on the test period, split by deployer, strict rug label, 5 seeds:
   - (a) lift = PR-AUC of the detector with the pretrained sequence encoder minus the same detector with that encoder trained from scratch, at 5 and 15 minutes, with the matching lift in precision at the top 1%;
   - (b) the same lift at 24 hours;
   - (c) the same lift on tokens from deployers first seen after the cutoff;
   - (d) detector PR-AUC minus the Phase 2 LightGBM baseline at 15 minutes;
   - (e) the lift at 1% of labels.
 - **Pass threshold:**
-  - (a) at least 0.02 PR-AUC and 2 points of precision at the top 1%, significant, at both 5 and 15 minutes;
-  - (b) the 5- and 15-minute lifts are each at least the 24-hour lift;
-  - (c) at least 0.02, significant;
-  - (d) at least 0.02, significant;
-  - (e) at least 0.05, recorded as supporting evidence, not gated.
+  - The Phase 7 margin is max(0.02, the scaling margin from Phase 6).
+  - (a) PR-AUC lift of at least the Phase 7 margin, significant, at both 5 and 15 minutes; the precision-at-1% lift is reported next to it with the base rate.
+  - (b) the 5- and 15-minute lifts are each at least the 24-hour lift. The paper says pretraining helps *most* early only if the paired difference is also significant; otherwise it says "at least as much".
+  - (c) lift of at least the Phase 7 margin, significant;
+  - (d) at least the Phase 7 margin, significant;
+  - (e) is a finding; a lift of at least 0.05 supports the label-efficiency claim.
 - **Pass action:** these are the headline results; start Phase 8.
-- **Fail action:** report each failed part as a negative result. If (a) or (c) fails, the paper does not claim pretraining helps early detection or new deployers; it leads with contributions 2 and 3. If (d) fails, the paper reports that LightGBM remains the bar, in line with Relvas and Bernardo (2611.18914) and MELT.
+- **Fail action:** report each failed part as a negative result. If (a), (b) or (c) fails, the paper does not make the matching claim (helps early detection, helps most early, helps new deployers); if (a) and (c) both fail, it leads with contributions 2 and 3. If (d) fails, the paper reports that LightGBM remains the bar, in line with Relvas and Bernardo (2611.18914) and MELT (2602.13480).
 
 ## Phase 8: release
 
