@@ -42,6 +42,64 @@ Next step:
 ## Runs
 
 ```text
+Run ID: P1-extract-full-001
+Date: 2026-11-24 (started; results filled in when the run finishes)
+Phase: 1 (full-year AWS extraction with the extractor merged in PR #8)
+Question this run answers: Can this Mac produce the filtered AWS extract for the
+  whole window (2025-11-01 to 2026-10-31) within the trial's measured envelope
+  (about 7 MB/s, about 74 h, under 180 GB on disk, peak memory under 4 GB), with
+  complete, valid manifests for every day and table?
+Hypothesis (pre-registered, written before the results): The year extracts in
+  download mode at about the trial's 7 MB/s average, in about 74 h of run time,
+  to about 171 GB, with the whole process tree under 4 GB. Every one of the
+  365 days x 5 tables gets a manifest that matches its output file.
+Pass threshold (set here before the run, from the trial's envelope; no PLAN.md
+  gate number applies):
+  (1) Completeness: all 1,825 (day, table) partitions have a _manifest.json
+      whose output file exists with the recorded size, spec hash equal to the
+      current spec, code_dirty false, and rows > 0 and source_rows > 0.
+  (2) Size: total raw_filtered output <= 180 GB.
+  (3) Time: summed run wall time (excluding any stopped interval between
+      restarts) <= 81 h (74 h + 10%).
+  (4) Throughput: average raw MB/s (source bytes / summed run wall time)
+      >= 6.3 MB/s (7 MB/s - 10%).
+  (5) Memory: peak RSS of the whole extractor process tree, sampled every 30 s,
+      <= 4 GB.
+  Stop rule: if the projected total size passes about 170 GB, stop and ask the
+  manager before changing columns.
+  Anomalies (reported, not pass/fail): any day whose kept rows for a table are
+  below 50% or above 200% of that table's median for the month.
+
+Data snapshot date: AWS Public Blockchain Data (s3://aws-public-blockchain/v1.0/eth/)
+  as read from 2026-11-24 on (each manifest records its own snapshot date)
+Pretraining cutoff date: n/a
+Train, validation and test periods: n/a
+Split: n/a
+Label and label version: n/a
+Base rate: n/a
+Code commit: the commit adding this entry (run from a clean detached checkout of
+  it, so every manifest records it with code_dirty false)
+Config file: none; CLI defaults: --mode download --workers 5 --connections 16.
+  Run in two legs: 2025-11-01..2025-11-30, then 2025-12-01..2026-10-31.
+Seeds: n/a (deterministic)
+Machine: Mac, Apple M1, 8 cores, 16 GB RAM, home internet, AWS us-east-2
+
+Model size: n/a
+Objectives: n/a
+Wall-clock time: (pending)
+
+Results: (pending)
+
+What changed from the previous run: full window instead of 3 trial days; sorted
+  output and whitespace-insensitive spec hash (PR #8 review), so the 3 trial
+  days are re-extracted.
+Outcome: (pending)
+Conclusion: (pending)
+Decision taken: (pending)
+Next step: (pending)
+```
+
+```text
 Run ID: P1-decode-001
 Date: 2026-11-24
 Phase: 1 (decode Uniswap V2/V3/V4, fork and ERC-20 events; PR #7)
