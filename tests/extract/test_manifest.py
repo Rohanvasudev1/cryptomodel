@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import dataclasses
 import datetime as dt
 import json
 from pathlib import Path
 
 import pytest
 
-from cryptomodel.extract import pipeline
+from cryptomodel.extract import pipeline, tables
 from cryptomodel.extract.manifest import MANIFEST_NAME, read_manifest
 from cryptomodel.extract.pipeline import extract_table_day
 from cryptomodel.extract.source import LocalSource
@@ -124,3 +125,44 @@ def test_force_rewrites(write_aws: WriteAws, aws_root: Path, out_root: Path) -> 
     extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root)
     r = extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root, force=True)
     assert r.status == "written"
+
+
+def test_manifest_with_a_prior_equivalent_spec_hash_is_skipped(
+    write_aws: WriteAws, aws_root: Path, out_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write_aws("contracts", contracts(2))
+    extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root)
+    path = out_root / "contracts" / PART / MANIFEST_NAME
+    raw = json.loads(path.read_text())
+    raw["spec_hash"] = "olderequivalent"
+    path.write_text(json.dumps(raw))
+    assert (
+        extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root).status
+        == "written"
+    )
+    path.write_text(json.dumps(raw))
+    monkeypatch.setitem(
+        tables.PRIOR_SPEC_HASHES, "contracts", frozenset({"olderequivalent"})
+    )
+    assert (
+        extract_table_day(LocalSource(aws_root), "contracts", DAY, out_root).status
+        == "skipped"
+    )
+
+
+def test_traces_prior_hash_differs_only_by_try_cast(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The prior traces spec is the current one with CAST instead of TRY_CAST on
+    # value. Where CAST succeeded the two give the same output, and the prior spec
+    # wrote no manifest where it failed, so its outputs stay valid.
+    spec = tables.TABLE_SPECS["traces"]
+    assert spec.sql.count("TRY_CAST(value AS DECIMAL(38, 0))") == 1
+    old_sql = spec.sql.replace("TRY_CAST(value", "CAST(value")
+    monkeypatch.setitem(
+        tables.TABLE_SPECS, "traces", dataclasses.replace(spec, sql=old_sql)
+    )
+    old_hash = tables.spec_hash("traces")
+    monkeypatch.undo()
+    assert tables.PRIOR_SPEC_HASHES["traces"] == frozenset({old_hash})
+    assert old_hash != tables.spec_hash("traces")

@@ -263,6 +263,39 @@ def test_traces_filter(write_aws: WriteAws, aws_root: Path, out_root: Path) -> N
     assert pa.types.is_decimal(s.field("value_wei_approx").type)
 
 
+def test_traces_value_beyond_decimal38_becomes_null(
+    write_aws: WriteAws, aws_root: Path, out_root: Path
+) -> None:
+    # Seen on mainnet (2025-12-17 and later): failed calls whose value is about
+    # 2^256 wei. That cannot fit decimal(38, 0) and used to fail the whole day.
+    sel = "0xa9059cbb"
+    write_aws(
+        "traces",
+        [
+            {
+                "trace_type": "call",
+                "call_type": "call",
+                "trace_address": "0",
+                "error": "Reverted",
+                "status": 0,
+                "value": float(2**256 - 1),
+                "input": sel,
+            },
+            {
+                "trace_type": "call",
+                "call_type": "call",
+                "trace_address": "1",
+                "value": 5e17,
+            },
+        ],
+    )
+    out = run(aws_root, out_root, "traces")
+    values = out.column("value_wei_approx").to_pylist()
+    assert values[0] is None
+    assert int(values[1]) == 5 * 10**17
+    assert out.column("error").to_pylist()[0] == "Reverted"
+
+
 # ---------------------------------------------------------------- blocks, contracts
 
 

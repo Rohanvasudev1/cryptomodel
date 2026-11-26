@@ -12,7 +12,8 @@ Conventions:
 - AWS stores ``transactions.value`` and ``traces.value`` as doubles, so precision beyond
   2^53 wei is lost at the source. We keep the double's integer exactly as
   ``decimal(38, 0)`` in ``value_wei_approx``. Token amounts come from ``logs.data``,
-  which is exact.
+  which is exact. A trace value of 10^38 wei or more (far above the ETH supply; seen
+  only on failed calls, near 2^256) does not fit and becomes null.
 - Timestamps are ``timestamp[us, UTC]``.
 - Every table is sorted on its natural key, so the output is byte-identical from run
   to run whatever the source file order or DuckDB's thread count. Traces sort by
@@ -244,7 +245,7 @@ TRACES = _spec(
     SELECT block_number, utc(block_timestamp), transaction_index,
            hexbin(transaction_hash), nn(trace_address), trace_type, nn(call_type),
            hexbin(from_address),
-           hexbin(to_address), CAST(value AS DECIMAL(38, 0)), CAST(gas AS BIGINT),
+           hexbin(to_address), TRY_CAST(value AS DECIMAL(38, 0)), CAST(gas AS BIGINT),
            CAST(gas_used AS BIGINT), status, nn(error), selector(input), hexsize(input),
            CASE WHEN trace_type = 'create' THEN hexbin(input) END
     FROM src
@@ -297,6 +298,22 @@ CONTRACTS = _spec(
 TABLE_SPECS: dict[str, TableSpec] = {
     s.name: s for s in (BLOCKS, TRANSACTIONS, LOGS, TRACES, CONTRACTS)
 }
+
+
+# Spec hashes of earlier specs whose outputs are still valid under the current one.
+# A manifest carrying one of these is treated as current, so a change that provably
+# leaves every successful output byte-identical does not force re-extraction.
+# traces: the spec before value became TRY_CAST (it was CAST, which raised on values
+# beyond decimal(38, 0) and so wrote no output for those days). Wherever CAST
+# succeeded, TRY_CAST gives the same value.
+PRIOR_SPEC_HASHES: dict[str, frozenset[str]] = {
+    "traces": frozenset({"fae09a9ce8db1f56"}),
+}
+
+
+def accepted_spec_hashes(table: str, current: str) -> frozenset[str]:
+    """The current hash plus any prior hash whose outputs are still valid."""
+    return frozenset({current}) | PRIOR_SPEC_HASHES.get(table, frozenset())
 
 
 def spec_hash(table: str) -> str:
