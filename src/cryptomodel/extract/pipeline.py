@@ -30,7 +30,13 @@ from cryptomodel.extract.manifest import (
     write_manifest,
 )
 from cryptomodel.extract.source import Source
-from cryptomodel.extract.tables import MACROS, TABLE_SPECS, TableSpec, spec_hash
+from cryptomodel.extract.tables import (
+    MACROS,
+    TABLE_SPECS,
+    TableSpec,
+    accepted_spec_hashes,
+    spec_hash,
+)
 
 ZSTD_LEVEL = 3
 SCAN_BATCH_ROWS = 32_768
@@ -87,7 +93,8 @@ def extract_table_day(
 
     if not force:
         old = read_manifest(manifest_path)
-        if old is not None and manifest_matches(old, files, current_hash, pdir):
+        accepted = accepted_spec_hashes(table, current_hash)
+        if old is not None and manifest_matches(old, files, accepted, pdir):
             return ExtractResult("skipped", old)
 
     started = time.monotonic()

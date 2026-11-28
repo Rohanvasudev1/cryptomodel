@@ -42,6 +42,116 @@ Next step:
 ## Runs
 
 ```text
+Run ID: P1-extract-full-001
+Date: 2026-11-24 to 2026-11-28
+Phase: 1 (full-year AWS extraction with the extractor merged in PR #8)
+Question this run answers: Can this Mac produce the filtered AWS extract for the
+  whole window (2025-11-01 to 2026-10-31) within the trial's measured envelope
+  (about 7 MB/s, about 74 h, under 180 GB on disk, peak memory under 4 GB), with
+  complete, valid manifests for every day and table?
+Hypothesis (pre-registered, written before the results): The year extracts in
+  download mode at about the trial's 7 MB/s average, in about 74 h of run time,
+  to about 171 GB, with the whole process tree under 4 GB. Every one of the
+  365 days x 5 tables gets a manifest that matches its output file.
+Pass threshold (set here before the run, from the trial's envelope; no PLAN.md
+  gate number applies):
+  (1) Completeness: all 1,825 (day, table) partitions have a _manifest.json
+      whose output file exists with the recorded size, spec hash equal to the
+      current spec, code_dirty false, and rows > 0 and source_rows > 0.
+  (2) Size: total raw_filtered output <= 180 GB.
+  (3) Time: summed run wall time (excluding any stopped interval between
+      restarts) <= 81 h (74 h + 10%).
+  (4) Throughput: average raw MB/s (source bytes / summed run wall time)
+      >= 6.3 MB/s (7 MB/s - 10%).
+  (5) Memory: peak RSS of the whole extractor process tree, sampled every 30 s,
+      <= 4 GB.
+  Stop rule: if the projected total size passes about 170 GB, stop and ask the
+  manager before changing columns.
+  Anomalies (reported, not pass/fail): any day whose kept rows for a table are
+  below 50% or above 200% of that table's median for the month.
+
+Data snapshot date: AWS Public Blockchain Data (s3://aws-public-blockchain/v1.0/eth/)
+  as read from 2026-11-24 on (each manifest records its own snapshot date)
+Pretraining cutoff date: n/a
+Train, validation and test periods: n/a
+Split: n/a
+Label and label version: n/a
+Base rate: n/a
+Code commit: cb9a351 (this entry) for the first legs, then 0814ce1 (fix for trace
+  values beyond decimal(38,0); see below). Run from a clean detached checkout, so
+  every manifest records code_dirty false. Manifests: 302 at cb9a351, 1,523 at
+  0814ce1.
+Config file: none; CLI defaults: --mode download --workers 5 --connections 16
+  (DuckDB 1 GB per task). Legs: nov (2025-11), nov-retry, rest (2025-12-01 to
+  2026-10-31, stopped after 12.1 h for the fix), rest2 (same range, resumed), and
+  oomretry (3 transactions days with --workers 1 --duckdb-memory 3GB).
+Seeds: n/a (deterministic)
+Machine: Mac, Apple M1, 8 cores, 16 GB RAM, home internet, AWS us-east-2
+
+Model size: n/a
+Objectives: n/a
+Wall-clock time: 86.5 h of run time (311,562 s summed over 5 legs; gaps between
+  legs excluded), 2026-11-24 21:20 to 2026-11-28 12:03 UTC
+
+Results (full report: reports/phase1/extraction_full.md):
+  Completeness: 1,825 of 1,825 partitions valid (manifest; output size; footer
+    rows == manifest rows; spec hash accepted; code_dirty false; rows > 0 and
+    source_rows > 0). Blocks contiguous: 2,615,422 numbers, no gaps or duplicates.
+  Output: 120.82 GB (du 118 GiB) from 1,689.6 GB source.
+    blocks 1.11 GB, contracts 2.26, logs 51.23, traces 14.97, transactions 51.26.
+  Rows kept: blocks 2.62M, contracts 24.8M, logs 1,559M (71% of source),
+    traces 463M (8.3%), transactions 756M.
+  Throughput: 5.42 MB/s overall. By leg: nov 2.04, nov-retry 1.09,
+    rest 2.78, rest2 6.84 (1,462 GB in 59.4 h), oomretry 1.54. The network path
+    to S3 ran at 0 to 1.6 MB/s from 2026-11-25 00:00 to about 12:00 UTC, with no
+    sleep or thermal events on the Mac. Cloudflare on the same line gave 6.3 MB/s
+    (22.8 before the trial).
+  Peak RSS, whole tree (30 s samples): 2.42 GB; highest single task 2.40 GB.
+  Failures, all rerun successfully:
+    9 S3 read timeouts (2025-11-27 logs and traces; 7 in 2025-12-01..05);
+    4 traces days where value about 2^256 overflowed decimal(38,0)
+      (2025-12-17, 19, 26, 30). This blocked the run, so it was fixed test-first
+      in 0814ce1: TRY_CAST to null (98 rows over 46 days, all failed calls);
+    3 transactions days out of DuckDB memory at 1 GB (2026-05-31, 06-09, 06-19),
+      rerun at 3 GB with 1 worker.
+  Anomalous days (rows outside 50% to 200% of the table's monthly median): 163.
+    contracts 157: heavy-tailed deployments; rows == source rows.
+    logs 4: 2025-12-07 and 12-08 are Transfer spam bursts, about 3.6M to 4.1M
+      each from 0x609e0f0c... and 0x0d4a11d5...; 2026-04-04 and 04-05 have
+      0x201c17cd... at about 3M a day.
+    traces 2: 2025-12-07; and 2026-08-08, where blocks are complete, source rows
+      are normal and the activity mix shifted.
+
+What changed from the previous run: full window instead of 3 trial days; sorted
+  output and whitespace-insensitive spec hash (PR #8 review), so the 3 trial
+  days were re-extracted; mid-run fix 0814ce1 (trace value TRY_CAST, and
+  PRIOR_SPEC_HASHES so the 55 traces partitions already written stayed valid).
+Outcome:
+  (1) Completeness: pass, with one deviation. The threshold said "spec hash equal
+      to the current spec". 55 traces partitions written by cb9a351 carry the
+      prior traces hash fae09a9ce8db1f56 (current 830a72d2f3da613f). It is
+      accepted because the specs differ only by CAST vs TRY_CAST, so output is
+      identical wherever CAST succeeded; a test pins this.
+  (2) Size: pass (120.8 GB <= 180 GB).
+  (3) Time: fail (86.5 h > 81 h).
+  (4) Throughput: fail (5.42 MB/s < 6.3 MB/s).
+  (5) Memory: pass (2.42 GB <= 4 GB).
+Conclusion: The Mac produced a complete, valid filtered extract of the year. It
+  is smaller than projected (121 GB, not 171) and uses little memory. Run time
+  and throughput missed the envelope because of about 27 h with a degraded
+  network path to S3, plus a leg stopped for a bug fix. With a normal path the
+  extractor sustained the trial's rate (6.8 MB/s over 59 h). Network throughput
+  to us-east-2 from this line is not reliable day to day.
+Decision taken: none on the plan. Extractor fix 0814ce1 is in this PR. No
+  thresholds changed.
+Next step: decode the full year (Phase 1) and count merged events against the
+  Phase 0 estimate of 1.5 to 2.3 billion. Consider a 2 GB default for
+  --duckdb-memory (transactions on busy days needs it). For future
+  re-extractions, plan for the network varying by 3x or more, or run them in
+  us-east-2.
+```
+
+```text
 Run ID: P1-decode-001
 Date: 2026-11-24
 Phase: 1 (decode Uniswap V2/V3/V4, fork and ERC-20 events; PR #7)

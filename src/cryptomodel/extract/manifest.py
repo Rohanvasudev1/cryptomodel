@@ -7,6 +7,7 @@ provenance to decide whether the day can be skipped on a re-run.
 from __future__ import annotations
 
 import json
+from collections.abc import Collection
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -62,12 +63,16 @@ def write_manifest(path: Path, manifest: Manifest) -> None:
 
 
 def manifest_matches(
-    manifest: Manifest, source_files: list[SourceFile], spec_hash: str, part_dir: Path
+    manifest: Manifest,
+    source_files: list[SourceFile],
+    spec_hashes: Collection[str],
+    part_dir: Path,
 ) -> bool:
-    """True if the recorded extract is still valid for this source listing and spec."""
+    """True if the recorded extract is still valid for this source listing and one
+    of the accepted spec hashes."""
     data = part_dir / manifest.output_file
     return (
-        manifest.spec_hash == spec_hash
+        manifest.spec_hash in spec_hashes
         and manifest.source_files == source_files
         and data.is_file()
         and data.stat().st_size == manifest.output_bytes
